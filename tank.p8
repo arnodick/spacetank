@@ -1,12 +1,12 @@
 pico-8 cartridge // http://www.pico-8.com
 version 5
 __lua__
-debug=true
+debug=false
 debug_l={}
-debug_l[4]=0
 
 function _init()
 	timer=0
+	cam={0,0}
 	gravity=0.05
 	bulletvel=2
 	actors={}
@@ -91,42 +91,40 @@ function controlactor(a)
 	a.x+=a.vec[1]*a.vel
  a.y+=a.vec[2]*a.vel
  if a.y>128 then del(actors,a) end
-end
-
-function _draw()
-	cls()
-	pal(7,flr(rnd(15))+1)
-	foreach(actors,drawactor)
-	if debug==true then
-		print(actors[1].gun.x,10,10,6)
-		print(actors[1].gun.y,10,20,6)
-		print(actors[1].gun.vec[1],10,30,6)
-		print(actors[1].gun.vec[2],10,40,6)
-		print(actors[1].gunangle,10,50,6)
-		print(actors[1].x,10,60,6)
-		print(actors[1].y,10,70,6)
-		print(#actors,10,80,6)
-		if actors[2]!=nil then
-			print(actors[2].vec[1],10,90,6)
-		end
-	end
+ if a.t==1 then cam[1]=a.x-64 cam[2]=a.y-64 end
 end
 
 function _update()
 	foreach(actors,controlactor)
 	timer+=1
+	debug_u()
+end
+
+function _draw()
+	cls()
+	camera(cam[1],cam[2])
+	pal(7,flr(rnd(15))+1)
+	foreach(actors,drawactor)
+	if debug then
+		for a=1,#debug_l do
+			print(debug_l[a],cam[1]+0,cam[2]+(a-1)*6,8)
+		end
+	end
 end
 
 function debug_u()
 	debug_l[1]=timer
 	debug_l[2]="mem="..stat(0)
 	debug_l[3]="cpu="..stat(1)
-	if stat(1)>debug_l[4] then
-		debug_l[4]=stat(1)
-	end
-	debug_l[5]="actors:"..#actors
+	debug_l[4]="actors:"..#actors
+	debug_l[5]="tank x:"..actors[1].x
+	debug_l[6]="tank y:"..actors[1].x
+	debug_l[7]="gun x:"..actors[1].gun.x
+	debug_l[8]="gun y:"..actors[1].gun.y
+	debug_l[9]="gun d:"..actors[1].gunangle
+	debug_l[10]="gun vx:"..actors[1].gun.vec[1]
+	debug_l[11]="gun vy:"..actors[1].gun.vec[2]
 end
-
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
