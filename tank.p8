@@ -10,23 +10,24 @@ function _init()
 	gravity=0.05
 	bulletvel=2
 	actors={}
-	maketank(50,50,1,0,0)
+	maketank(50,50,0,0)
 end
 
-function makeactor(t,x,y,vx,vy,vel)
+function makeactor(t,x,y,d,vel)
 	local actor={}
 	actor.t=t
 	actor.x=x
 	actor.y=y
-	actor.vec={vx,vy}
+	actor.d=d
+	actor.vec={cos(d),sin(d)}
 	actor.vel=vel
 	actor.delta=timer
 	add(actors,actor)
 	return actor
 end
 
-function maketank(x,y,vx,vy,vel)
-	local tank=makeactor(1,x,y,vx,vy,vel)
+function maketank(x,y,d,vel)
+	local tank=makeactor(1,x,y,d,vel)
 	tank.gunangle=0.25
 	tank.gunlen=6
 	tank.gun={}
@@ -35,8 +36,8 @@ function maketank(x,y,vx,vy,vel)
 	tank.gun.vec={0,0}
 end
 
-function makebullet(x,y,vx,vy,vel)
-	makeactor(2,x,y,vx,vy,vel)
+function makebullet(x,y,d,vel)
+	makeactor(2,x,y,d,vel)
 end
 
 function drawactor(t)
@@ -78,18 +79,18 @@ function controlactor(a)
 		a.gun.x=a.x+4+a.gun.vec[1]*a.gunlen
 		a.gun.y=a.y+3+a.gun.vec[2]*a.gunlen
 		if btn(4) then
---			local wx=t.gun.x local wy=t.y+t.gun.y
-			makebullet(a.gun.x,a.gun.y,a.gun.vec[1],a.gun.vec[2]+rnd(0.6)-0.3,bulletvel)
+			makebullet(a.gun.x,a.gun.y,a.gunangle+rnd(0.06)-0.03,bulletvel)
 		end
 	end
 	
 	if a.t!=1 then
 	a.y+=gravity*(timer-a.delta)
 	end
-	--if a.vel>0 then a.vel-=0.01 end
+	a.vec[1]=cos(a.d)
+	a.vec[2]=sin(a.d)
 	a.x+=a.vec[1]*a.vel
  a.y+=a.vec[2]*a.vel
-	
+ if a.y>128 then del(actors,a) end
 end
 
 function _draw()
