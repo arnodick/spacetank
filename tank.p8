@@ -9,6 +9,10 @@ function _init()
 	cam={0,0}
 	gravity=0.05
 	bulletvel=2
+	ground={}
+	ground[1]={0,120}
+	ground[2]={60,90}
+	ground[3]={120,110}
 	actors={}
 	maketank(50,50,0,0)
 end
@@ -47,7 +51,7 @@ function drawactor(t)
 		spr(1,t.x,t.y)
 		line(t.x+4,t.y+3,t.gun.x,t.gun.y,8)
 	elseif t.t==2 then
-		line(t.x,t.y,t.x,t.y,7)
+		line(t.x,t.y,t.x-t.vec[1]*10,t.y-t.vec[2]*10,7)
 --		rectfill(t.x,t.y,t.x+2,t.y+2,8)
 	end
 end
@@ -79,7 +83,7 @@ function controlactor(a)
 		a.gun.x=a.x+4+a.gun.vec[1]*a.gunlen
 		a.gun.y=a.y+3+a.gun.vec[2]*a.gunlen
 		if btn(4) then
-			makebullet(a.gun.x,a.gun.y,a.gunangle+rnd(0.06)-0.03,bulletvel)
+			makebullet(a.gun.x,a.gun.y,a.gunangle+rnd(0.06)-0.03+a.d,bulletvel+a.vel)
 		end
 	end
 	
@@ -104,6 +108,9 @@ function _draw()
 	cls()
 	camera(cam[1],cam[2])
 	pal(7,flr(rnd(15))+1)
+	for a=1,#ground-1 do
+		line(ground[a][1],ground[a][2],ground[a+1][1],ground[a+1][2],8)
+	end
 	foreach(actors,drawactor)
 	if debug then
 		for a=1,#debug_l do
