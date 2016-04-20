@@ -1,7 +1,7 @@
 pico-8 cartridge // http://www.pico-8.com
 version 5
 __lua__
-debug=false
+debug=true
 debug_l={}
 
 function _init()
@@ -10,9 +10,10 @@ function _init()
 	gravity=0.05
 	bulletvel=2
 	ground={}
-	ground[1]={0,120}
-	ground[2]={60,90}
-	ground[3]={120,110}
+	ground[1]={-64,flr(rnd(120))}
+	for a=2,100 do
+		ground[a]={a*50,flr(rnd(120))}
+	end
 	actors={}
 	maketank(50,50,0,0)
 end
@@ -53,6 +54,7 @@ function drawactor(t)
 		line(t.x+4,t.y+3,t.gun.x,t.gun.y,8)
 	elseif t.t==2 then
 --		line(t.x,t.y,t.x-cos(t.d)*5,t.y-sin(t.d)*5,7)
+--		line(t.x,t.y,t.tail[1],t.tail[2],7)
 		line(t.x,t.y,t.tail[1],t.tail[2],7)
 --		rectfill(t.x,t.y,t.x+2,t.y+2,8)
 	end
@@ -85,20 +87,20 @@ function controlactor(a)
 		a.gun.x=a.x+4+a.gun.vec[1]*a.gunlen
 		a.gun.y=a.y+3+a.gun.vec[2]*a.gunlen
 		if btn(4) then
-			makebullet(a.gun.x,a.gun.y,a.gunangle+rnd(0.06)-0.03+a.d,bulletvel+a.vel)
+			makebullet(a.gun.x,a.gun.y,a.gunangle,bulletvel)
 		end
 	elseif a.t==2 then
-		bullet.tail={a.x-a.vec[1],a.y-a.vec[2]}
+		a.tail={a.x-a.vec[1],a.y-a.vec[2]}
 	end
 	
 	if a.t!=1 then
-	a.y+=gravity*(timer-a.delta)
+--	a.y+=gravity*(timer-a.delta)
 	end
 	a.vec[1]=cos(a.d)
 	a.vec[2]=sin(a.d)
 	a.x+=a.vec[1]*a.vel
  a.y+=a.vec[2]*a.vel
- if a.y>128 then del(actors,a) end
+ if a.x<cam[1]-128 or a.x>cam[1]+256 or a.y>128 or a.y<-128 then del(actors,a) end
  if a.t==1 then cam[1]=a.x-64 cam[2]=a.y-64 end
 end
 
@@ -134,7 +136,11 @@ function debug_u()
 	debug_l[8]="gun y:"..actors[1].gun.y
 	debug_l[9]="gun d:"..actors[1].gunangle
 	debug_l[10]="gun vx:"..actors[1].gun.vec[1]
-	debug_l[11]="gun vy:"..actors[1].gun.vec[2]
+	debug_l[11]="gun vy:"..actors[1].gun.vec[2]	
+	if actors[2]!=nil then
+	debug_l[12]="bul vx:"..actors[2].vec[1]
+	debug_l[13]="bul vy:"..actors[2].vec[2]
+	end
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
