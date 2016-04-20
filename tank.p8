@@ -1,14 +1,14 @@
 pico-8 cartridge // http://www.pico-8.com
 version 5
 __lua__
-debug=true
+debug=false
 debug_l={}
 
 function _init()
 	timer=0
 	cam={0,0}
-	gravity=0.05
-	bulletvel=2
+	gravity=0.2
+	bulletvel=6
 	ground={}
 	ground[1]={-64,flr(rnd(120))}
 	for a=2,100 do
@@ -33,6 +33,9 @@ end
 
 function maketank(x,y,d,vel)
 	local tank=makeactor(1,x,y,d,vel)
+	tank.accel=0.08
+	tank.decel=0.02
+	tank.maxvel=5
 	tank.gunangle=0.25
 	tank.gunlen=6
 	tank.gun={}
@@ -64,44 +67,59 @@ function controlactor(a)
 	if a.t==1 then
 		if btn(5) then
 			if btn(0) then 
-				a.vel-=0.1
+				a.vel-=a.accel
 			elseif btn(1) then 
-				a.vel+=0.1
+				a.vel+=a.accel
 			else
 				if a.vel<0 then
-					a.vel+=0.1
+					a.vel+=a.decel
 				elseif a.vel>0 then
-					a.vel-=0.1
+					a.vel-=a.decel
 				end
 			end
 		else
-			if btn(0) then 
-				if a.gunangle<0.5 then a.gunangle+=0.02 end
+			if a.vel<0 then
+				a.vel+=a.decel
+			elseif a.vel>0 then
+				a.vel-=a.decel
+			end
+			if btn(0) then
+				a.gunangle=clamp(a.gunangle+0.02,0,0.5,true)
+				--if a.gunangle<0.5 then a.gunangle+=0.02 end
 			end
 			if btn(1) then 
-				if a.gunangle>0 then a.gunangle-=0.02 end
+				a.gunangle=clamp(a.gunangle-0.02,0,0.5,true)
+				--if a.gunangle>0 then a.gunangle-=0.02 end
 			end
 		end
+		a.vel=clamp(a.vel,-a.maxvel,a.maxvel,true)
 		a.gun.vec[1]=cos(a.gunangle)
 		a.gun.vec[2]=sin(a.gunangle)
 		a.gun.x=a.x+4+a.gun.vec[1]*a.gunlen
 		a.gun.y=a.y+3+a.gun.vec[2]*a.gunlen
-		if btn(4) then
-			makebullet(a.gun.x,a.gun.y,a.gunangle,bulletvel)
-		end
 	elseif a.t==2 then
 		a.tail={a.x-a.vec[1],a.y-a.vec[2]}
 	end
 	
 	if a.t!=1 then
---	a.y+=gravity*(timer-a.delta)
+	a.y+=gravity*(timer-a.delta)
 	end
 	a.vec[1]=cos(a.d)
 	a.vec[2]=sin(a.d)
 	a.x+=a.vec[1]*a.vel
  a.y+=a.vec[2]*a.vel
+
  if a.x<cam[1]-128 or a.x>cam[1]+256 or a.y>128 or a.y<-128 then del(actors,a) end
- if a.t==1 then cam[1]=a.x-64 cam[2]=a.y-64 end
+ if a.t==1 then
+  a.gun.x=a.x+4+a.gun.vec[1]*a.gunlen
+		a.gun.y=a.y+3+a.gun.vec[2]*a.gunlen
+		if btn(4) then
+--			local bdir=atan2(a.gun.vec[1]+a.vec[1],a.gun.vec[2]+a.vec[2])
+			local bvel=sqrt( (a.gun.vec[1]*bulletvel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bulletvel+a.vec[2]*a.vel)^2 )
+			makebullet(a.gun.x,a.gun.y,a.gunangle+rnd(0.04)-0.02,bvel)	
+		end
+ 	cam[1]=a.x-32 cam[2]=a.y-64
+ end
 end
 
 function _update()
@@ -125,6 +143,19 @@ function _draw()
 	end
 end
 
+function clamp(v,mi,ma,h)
+	if h then
+		if v<mi then v=mi
+		elseif v>ma then v=ma
+		end
+	else
+		if v<mi then v=ma
+		elseif v>ma then v=mi
+		end
+	end
+	return v
+end
+
 function debug_u()
 	debug_l[1]=timer
 	debug_l[2]="mem="..stat(0)
@@ -132,14 +163,15 @@ function debug_u()
 	debug_l[4]="actors:"..#actors
 	debug_l[5]="tank x:"..actors[1].x
 	debug_l[6]="tank y:"..actors[1].x
-	debug_l[7]="gun x:"..actors[1].gun.x
-	debug_l[8]="gun y:"..actors[1].gun.y
-	debug_l[9]="gun d:"..actors[1].gunangle
-	debug_l[10]="gun vx:"..actors[1].gun.vec[1]
-	debug_l[11]="gun vy:"..actors[1].gun.vec[2]	
+	debug_l[7]="tank vel:"..actors[1].vel
+	debug_l[8]="gun x:"..actors[1].gun.x
+	debug_l[9]="gun y:"..actors[1].gun.y
+	debug_l[10]="gun d:"..actors[1].gunangle
+	debug_l[11]="gun vx:"..actors[1].gun.vec[1]
+	debug_l[12]="gun vy:"..actors[1].gun.vec[2]	
 	if actors[2]!=nil then
-	debug_l[12]="bul vx:"..actors[2].vec[1]
-	debug_l[13]="bul vy:"..actors[2].vec[2]
+	debug_l[13]="bul vx:"..actors[2].vec[1]
+	debug_l[14]="bul vy:"..actors[2].vec[2]
 	end
 end
 __gfx__
