@@ -41,7 +41,8 @@ function maketank(x,y,d,vel)
 end
 
 function makebullet(x,y,d,vel)
-	makeactor(2,x,y,d,vel)
+	bullet=makeactor(2,x,y,d,vel)
+	bullet.tail={0,0}
 end
 
 function drawactor(t)
@@ -51,7 +52,8 @@ function drawactor(t)
 		spr(1,t.x,t.y)
 		line(t.x+4,t.y+3,t.gun.x,t.gun.y,8)
 	elseif t.t==2 then
-		line(t.x,t.y,t.x-t.vec[1]*10,t.y-t.vec[2]*10,7)
+--		line(t.x,t.y,t.x-cos(t.d)*5,t.y-sin(t.d)*5,7)
+		line(t.x,t.y,t.tail[1],t.tail[2],7)
 --		rectfill(t.x,t.y,t.x+2,t.y+2,8)
 	end
 end
@@ -85,6 +87,8 @@ function controlactor(a)
 		if btn(4) then
 			makebullet(a.gun.x,a.gun.y,a.gunangle+rnd(0.06)-0.03+a.d,bulletvel+a.vel)
 		end
+	elseif a.t==2 then
+		bullet.tail={a.x-a.vec[1],a.y-a.vec[2]}
 	end
 	
 	if a.t!=1 then
