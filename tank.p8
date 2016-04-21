@@ -13,10 +13,34 @@ function _init()
 	ground[1]={-64,flr(rnd(120))}
 	for a=2,100 do
 		ground[a]={a*50,flr(rnd(120))}
+		local w=ground[a][1]-ground[a-1][1]
+		local h=ground[a-1][2]-ground[a][2]
+		ground[a-1].ratio=h/w
+		ground[a-1].d=atan2(w,h)
 	end
 	actors={}
 	maketank(50,50,0,0)
 end
+
+function getground(a)
+	for b=1,#ground-1 do
+		if ground[b][1]<a.x and ground[b+1][1]>a.x then
+			local w=a.x-ground[b][1]
+			return ground[b][2]-w*ground[b].ratio
+			--a.y=ground[b][2]
+		end
+	end
+end
+
+function getgrounddir(a)
+	for b=1,#ground-1 do
+		if ground[b][1]<a.x and ground[b+1][1]>a.x then
+			return ground[b].d
+			--a.y=ground[b][2]
+		end
+	end
+end
+
 
 function makeactor(t,x,y,d,vel)
 	local actor={}
@@ -35,13 +59,16 @@ function maketank(x,y,d,vel)
 	local tank=makeactor(1,x,y,d,vel)
 	tank.accel=0.08
 	tank.decel=0.02
-	tank.maxvel=5
+	tank.maxvel=4
 	tank.gunangle=0.25
 	tank.gunlen=6
 	tank.gun={}
 	tank.gun.x=0
 	tank.gun.y=0
 	tank.gun.vec={0,0}
+	
+	tank.xoff=-3
+	tank.yoff=-7
 end
 
 function makebullet(x,y,d,vel)
@@ -53,8 +80,8 @@ function drawactor(t)
 --	local mag=sqrt(t.gunx*t.gunx+t.guny*t.guny)
 --	local normx,normy=t.gunx/mag,t.guny/mag
 	if t.t==1 then
-		spr(1,t.x,t.y)
-		line(t.x+4,t.y+3,t.gun.x,t.gun.y,8)
+		spr(1,t.x+t.xoff,t.y+t.yoff)
+		line(t.x+1,t.y-4,t.gun.x,t.gun.y,8)
 	elseif t.t==2 then
 --		line(t.x,t.y,t.x-cos(t.d)*5,t.y-sin(t.d)*5,7)
 --		line(t.x,t.y,t.tail[1],t.tail[2],7)
@@ -93,32 +120,46 @@ function controlactor(a)
 			end
 		end
 		a.vel=clamp(a.vel,-a.maxvel,a.maxvel,true)
+		
 		a.gun.vec[1]=cos(a.gunangle)
 		a.gun.vec[2]=sin(a.gunangle)
-		a.gun.x=a.x+4+a.gun.vec[1]*a.gunlen
-		a.gun.y=a.y+3+a.gun.vec[2]*a.gunlen
+		a.gun.x=a.x+1+a.gun.vec[1]*a.gunlen
+		a.gun.y=a.y-4+a.gun.vec[2]*a.gunlen
+
+--		a.gun.x=a.x+4+a.gun.vec[1]*a.gunlen
+--		a.gun.y=a.y+3+a.gun.vec[2]*a.gunlen
 	elseif a.t==2 then
 		a.tail={a.x-a.vec[1],a.y-a.vec[2]}
 	end
-	
-	if a.t!=1 then
-	a.y+=gravity*(timer-a.delta)
+
+	if a.y<getground(a) then
+		a.y+=gravity*(timer-a.delta)
+	else
+		a.delta=timer
+		a.d=getgrounddir(a)
+		if a.t!=1 then
+--			del(actors,a)--delete for bounce!
+		end
+		a.y=getground(a)+1
 	end
+	
 	a.vec[1]=cos(a.d)
 	a.vec[2]=sin(a.d)
 	a.x+=a.vec[1]*a.vel
  a.y+=a.vec[2]*a.vel
-
+ 
  if a.x<cam[1]-128 or a.x>cam[1]+256 or a.y>128 or a.y<-128 then del(actors,a) end
  if a.t==1 then
-  a.gun.x=a.x+4+a.gun.vec[1]*a.gunlen
-		a.gun.y=a.y+3+a.gun.vec[2]*a.gunlen
+  a.gun.x=a.x+1+a.gun.vec[1]*a.gunlen
+		a.gun.y=a.y-4+a.gun.vec[2]*a.gunlen
 		if btn(4) then
 --			local bdir=atan2(a.gun.vec[1]+a.vec[1],a.gun.vec[2]+a.vec[2])
 			local bvel=sqrt( (a.gun.vec[1]*bulletvel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bulletvel+a.vec[2]*a.vel)^2 )
 			makebullet(a.gun.x,a.gun.y,a.gunangle+rnd(0.04)-0.02,bvel)	
 		end
- 	cam[1]=a.x-32 cam[2]=a.y-64
+--		a.y=getground(a)
+-- 	cam[1]=a.x-60+cos(actors[1].d)*actors[1].vel*10 cam[2]=a.y-80+sin(actors[1].d)*actors[1].vel*10
+		cam[1]=a.x-20 cam[2]=a.y-70
  end
 end
 
@@ -134,6 +175,7 @@ function _draw()
 	pal(7,flr(rnd(15))+1)
 	for a=1,#ground-1 do
 		line(ground[a][1],ground[a][2],ground[a+1][1],ground[a+1][2],8)
+		line(ground[a][1]+8,ground[a][2]+8,ground[a+1][1]+8,ground[a+1][2]+8,7)
 	end
 	foreach(actors,drawactor)
 	if debug then
@@ -169,10 +211,16 @@ function debug_u()
 	debug_l[10]="gun d:"..actors[1].gunangle
 	debug_l[11]="gun vx:"..actors[1].gun.vec[1]
 	debug_l[12]="gun vy:"..actors[1].gun.vec[2]	
-	if actors[2]!=nil then
-	debug_l[13]="bul vx:"..actors[2].vec[1]
-	debug_l[14]="bul vy:"..actors[2].vec[2]
+	debug_l[13]="ratio:"..getground(actors[1])
+	if actors[1].d!=nil then
+--	debug_l[14]="tank d:"..actors[1].d
 	end
+	debug_l[14]="tank vx:"..actors[1].vec[1]
+	debug_l[15]="tank vy:"..actors[1].vec[2]
+--	if actors[2]!=nil then
+--	debug_l[14]="bul vx:"..actors[2].vec[1]
+--	debug_l[15]="bul vy:"..actors[2].vec[2]
+--	end
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
