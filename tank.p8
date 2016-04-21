@@ -58,8 +58,9 @@ end
 function maketank(x,y,d,vel)
 	local tank=makeactor(1,x,y,d,vel)
 	tank.accel=0.08
-	tank.decel=0.02
-	tank.maxvel=4
+--	tank.decel=0.02
+	tank.decel=0.04
+	tank.maxvel=5
 	tank.gunangle=0.25
 	tank.gunlen=6
 	tank.gun={}
@@ -93,10 +94,12 @@ end
 function controlactor(a)
 	if a.t==1 then
 		if btn(5) then
-			if btn(0) then 
-				a.vel-=a.accel
-			elseif btn(1) then 
-				a.vel+=a.accel
+			if a.y>=getground(a) then
+				if btn(0) then 
+					a.vel-=a.accel
+				elseif btn(1) then 
+					a.vel+=a.accel
+				end
 			else
 				if a.vel<0 then
 					a.vel+=a.decel
