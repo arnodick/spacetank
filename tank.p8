@@ -8,10 +8,10 @@ function _init()
 	timer=0
 	cam={0,0}
 	gravity=0.2
-	bulletvel=6
+	bulletvel=5
 	ground={}
 	ground[1]={-64,flr(rnd(120))}
-	for a=2,100 do
+	for a=2,200 do
 		ground[a]={a*50,flr(rnd(120))}
 		local w=ground[a][1]-ground[a-1][1]
 		local h=ground[a-1][2]-ground[a][2]
@@ -58,8 +58,7 @@ end
 function maketank(x,y,d,vel)
 	local tank=makeactor(1,x,y,d,vel)
 	tank.accel=0.08
---	tank.decel=0.02
-	tank.decel=0.04
+	tank.decel=0.02
 	tank.maxvel=5
 	tank.gunangle=0.25
 	tank.gunlen=6
@@ -83,6 +82,7 @@ function drawactor(t)
 	if t.t==1 then
 		spr(1,t.x+t.xoff,t.y+t.yoff)
 		line(t.x+1,t.y-4,t.gun.x,t.gun.y,8)
+		line(t.x-1,t.y-3,t.x+3,t.y-3,12)
 	elseif t.t==2 then
 --		line(t.x,t.y,t.x-cos(t.d)*5,t.y-sin(t.d)*5,7)
 --		line(t.x,t.y,t.tail[1],t.tail[2],7)
@@ -94,12 +94,10 @@ end
 function controlactor(a)
 	if a.t==1 then
 		if btn(5) then
-			if a.y>=getground(a) then
-				if btn(0) then 
-					a.vel-=a.accel
-				elseif btn(1) then 
-					a.vel+=a.accel
-				end
+			if btn(0) then 
+				a.vel-=a.accel
+			elseif btn(1) then 
+				a.vel+=a.accel
 			else
 				if a.vel<0 then
 					a.vel+=a.decel
@@ -162,7 +160,7 @@ function controlactor(a)
 		end
 --		a.y=getground(a)
 -- 	cam[1]=a.x-60+cos(actors[1].d)*actors[1].vel*10 cam[2]=a.y-80+sin(actors[1].d)*actors[1].vel*10
-		cam[1]=a.x-20 cam[2]=a.y-70
+		cam[1]=a.x-20 cam[2]=a.y-80
  end
 end
 
