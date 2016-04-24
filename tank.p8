@@ -95,6 +95,24 @@ function drawactor(t)
 end
 
 function controlactor(a)
+	if a.y<getground(a) then
+		a.y+=gravity*(timer-a.delta)
+	else
+		a.delta=timer
+		a.d=getgrounddir(a)
+		if a.t!=1 then
+			--make an array of functions for this?
+			--each function is indexed from array with the .bt value
+			if bullettype[a.bt][1] then
+				del(actors,a)--delete for bounce!
+			end
+		end
+		a.y=getground(a)+1
+	end
+		a.vec[1]=cos(a.d)
+	a.vec[2]=sin(a.d)
+	a.x+=a.vec[1]*a.vel
+ a.y+=a.vec[2]*a.vel
 	if a.t==1 then
 		if btn(5) then
 			if btn(0) then 
@@ -135,26 +153,8 @@ function controlactor(a)
 	elseif a.t==2 then
 		a.tail={a.x-a.vec[1],a.y-a.vec[2]}
 	end
-
-	if a.y<getground(a) then
-		a.y+=gravity*(timer-a.delta)
-	else
-		a.delta=timer
-		a.d=getgrounddir(a)
-		if a.t!=1 then
-			--make an array of functions for this?
-			--each function is indexed from array with the .bt value
-			if bullettype[a.bt][1] then
-				del(actors,a)--delete for bounce!
-			end
-		end
-		a.y=getground(a)+1
-	end
 	
-	a.vec[1]=cos(a.d)
-	a.vec[2]=sin(a.d)
-	a.x+=a.vec[1]*a.vel
- a.y+=a.vec[2]*a.vel
+
  
  if a.x<cam[1]-128 or a.x>cam[1]+256 or a.y>128 then del(actors,a) end
  if a.t==1 then
