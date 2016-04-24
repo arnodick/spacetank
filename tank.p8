@@ -9,6 +9,8 @@ function _init()
 	cam={0,0}
 	gravity=0.2
 	bulletvel=5
+	bullettype={}
+	bullettype[1]={false,false}--{destroy/bounce,momentum}
 	ground={}
 	ground[1]={-64,flr(rnd(120))}
 	for a=2,200 do
@@ -71,9 +73,10 @@ function maketank(x,y,d,vel)
 	tank.yoff=-7
 end
 
-function makebullet(x,y,d,vel)
+function makebullet(x,y,d,vel,bt)
 	bullet=makeactor(2,x,y,d,vel)
 	bullet.tail={0,0}
+	bullet.bt=bt
 end
 
 function drawactor(t)
@@ -139,7 +142,11 @@ function controlactor(a)
 		a.delta=timer
 		a.d=getgrounddir(a)
 		if a.t!=1 then
---			del(actors,a)--delete for bounce!
+			--make an array of functions for this?
+			--each function is indexed from array with the .bt value
+			if bullettype[a.bt][1] then
+				del(actors,a)--delete for bounce!
+			end
 		end
 		a.y=getground(a)+1
 	end
@@ -156,7 +163,7 @@ function controlactor(a)
 		if btn(4) then
 --			local bdir=atan2(a.gun.vec[1]+a.vec[1],a.gun.vec[2]+a.vec[2])
 			local bvel=sqrt( (a.gun.vec[1]*bulletvel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bulletvel+a.vec[2]*a.vel)^2 )
-			makebullet(a.gun.x,a.gun.y,a.gunangle+rnd(0.04)-0.02,bvel)	
+			makebullet(a.gun.x,a.gun.y,a.gunangle+rnd(0.04)-0.02,bvel,1)	
 		end
 --		a.y=getground(a)
 -- 	cam[1]=a.x-60+cos(actors[1].d)*actors[1].vel*10 cam[2]=a.y-80+sin(actors[1].d)*actors[1].vel*10
