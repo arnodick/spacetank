@@ -82,7 +82,7 @@ function drawactor(t)
 	if t.t==1 then
 		spr(1,t.x+t.xoff,t.y+t.yoff)
 		line(t.x+1,t.y-4,t.gun.x,t.gun.y,8)
-		line(t.x-1,t.y-3,t.x+3,t.y-3,12)
+--		line(t.x-1,t.y-3,t.x+3,t.y-3,12)
 	elseif t.t==2 then
 --		line(t.x,t.y,t.x-cos(t.d)*5,t.y-sin(t.d)*5,7)
 --		line(t.x,t.y,t.tail[1],t.tail[2],7)
@@ -149,7 +149,7 @@ function controlactor(a)
 	a.x+=a.vec[1]*a.vel
  a.y+=a.vec[2]*a.vel
  
- if a.x<cam[1]-128 or a.x>cam[1]+256 or a.y>128 or a.y<-128 then del(actors,a) end
+ if a.x<cam[1]-128 or a.x>cam[1]+256 or a.y>128 then del(actors,a) end
  if a.t==1 then
   a.gun.x=a.x+1+a.gun.vec[1]*a.gunlen
 		a.gun.y=a.y-4+a.gun.vec[2]*a.gunlen
