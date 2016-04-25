@@ -11,14 +11,37 @@ function _init()
 	bulletvel=5
 	bullettype={}
 	bullettype[1]={false,false}--{destroy/bounce,momentum}
+	hillheight=120
+	groundheight=10
+	hillwidth=3--how many hills before go back to ground
+	groundwidth=3--how many low areas before go back to hill
+	local los,his=0,0
 	ground={}
-	ground[1]={-64,flr(rnd(120))}
+	ground[1]={-64,0}
 	for a=2,200 do
-		ground[a]={a*50,flr(rnd(120))}
+		local h=0
+		h=groundheight
+		if his>0 then
+			if his>hillwidth then 
+				his=0
+				los+=1
+			else
+				his+=1
+				h+=hillheight
+			end
+		elseif los>groundwidth then
+				los=0
+				h+=hillheight
+				his+=1
+		else
+				los+=1
+		end
+		ground[a]={a*50,-flr(rnd(h))}
 		local w=ground[a][1]-ground[a-1][1]
 		local h=ground[a-1][2]-ground[a][2]
 		ground[a-1].ratio=h/w
 		ground[a-1].d=atan2(w,h)
+		
 	end
 	actors={}
 	maketank(50,50,0,0)
@@ -95,24 +118,6 @@ function drawactor(t)
 end
 
 function controlactor(a)
-	if a.y<getground(a) then
-		a.y+=gravity*(timer-a.delta)
-	else
-		a.delta=timer
-		a.d=getgrounddir(a)
-		if a.t!=1 then
-			--make an array of functions for this?
-			--each function is indexed from array with the .bt value
-			if bullettype[a.bt][1] then
-				del(actors,a)--delete for bounce!
-			end
-		end
-		a.y=getground(a)+1
-	end
-		a.vec[1]=cos(a.d)
-	a.vec[2]=sin(a.d)
-	a.x+=a.vec[1]*a.vel
- a.y+=a.vec[2]*a.vel
 	if a.t==1 then
 		if btn(5) then
 			if btn(0) then 
@@ -153,8 +158,26 @@ function controlactor(a)
 	elseif a.t==2 then
 		a.tail={a.x-a.vec[1],a.y-a.vec[2]}
 	end
-	
 
+	if a.y<getground(a) then
+		a.y+=gravity*(timer-a.delta)
+	else
+		a.delta=timer
+		a.d=getgrounddir(a)
+		if a.t!=1 then
+			--make an array of functions for this?
+			--each function is indexed from array with the .bt value
+			if bullettype[a.bt][1] then
+				del(actors,a)--delete for bounce!
+			end
+		end
+		a.y=getground(a)+1
+	end
+	
+	a.vec[1]=cos(a.d)
+	a.vec[2]=sin(a.d)
+	a.x+=a.vec[1]*a.vel
+ a.y+=a.vec[2]*a.vel
  
  if a.x<cam[1]-128 or a.x>cam[1]+256 or a.y>128 then del(actors,a) end
  if a.t==1 then
@@ -167,7 +190,12 @@ function controlactor(a)
 		end
 --		a.y=getground(a)
 -- 	cam[1]=a.x-60+cos(actors[1].d)*actors[1].vel*10 cam[2]=a.y-80+sin(actors[1].d)*actors[1].vel*10
-		cam[1]=a.x-20 cam[2]=a.y-80
+		cam[1]=a.x-20 
+		if a.y<-60 then
+			cam[2]=-118+a.y+60--a.y-80
+		else
+			cam[2]=-118
+		end
  end
 end
 
@@ -212,7 +240,7 @@ function debug_u()
 	debug_l[3]="cpu="..stat(1)
 	debug_l[4]="actors:"..#actors
 	debug_l[5]="tank x:"..actors[1].x
-	debug_l[6]="tank y:"..actors[1].x
+	debug_l[6]="tank y:"..actors[1].y
 	debug_l[7]="tank vel:"..actors[1].vel
 	debug_l[8]="gun x:"..actors[1].gun.x
 	debug_l[9]="gun y:"..actors[1].gun.y
