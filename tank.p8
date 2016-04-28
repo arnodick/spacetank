@@ -8,9 +8,15 @@ function _init()
 	timer=0
 	cam={0,0}
 	gravity=0.2
-	bulletvel=5
 	bullettype={}
-	bullettype[1]={false,false}--{destroy/bounce,momentum}
+--	bullettype[1]={false,false}--{destroy/bounce,momentum}
+	bullettype[1]={}
+	bullettype[1].vel=5
+	bullettype[1].dest=false--{destroy/bounce,momentum}
+	bullettype[2]={}
+	bullettype[2].vel=2.5
+	bullettype[2].dest=true--{destroy/bounce,momentum}
+
 	hillheight=120
 	groundheight=10
 	hillwidth=3--how many hills before go back to ground
@@ -44,7 +50,7 @@ function _init()
 		
 	end
 	actors={}
-	maketank(50,50,0,0)
+	maketank(50,50,0,0,1)
 end
 
 function getground(a)
@@ -52,7 +58,6 @@ function getground(a)
 		if ground[b][1]<a.x and ground[b+1][1]>a.x then
 			local w=a.x-ground[b][1]
 			return ground[b][2]-w*ground[b].ratio
-			--a.y=ground[b][2]
 		end
 	end
 end
@@ -61,7 +66,6 @@ function getgrounddir(a)
 	for b=1,#ground-1 do
 		if ground[b][1]<a.x and ground[b+1][1]>a.x then
 			return ground[b].d
-			--a.y=ground[b][2]
 		end
 	end
 end
@@ -75,12 +79,13 @@ function makeactor(t,x,y,d,vel)
 	actor.d=d
 	actor.vec={cos(d),sin(d)}
 	actor.vel=vel
+	actor.grav=true
 	actor.delta=timer
 	add(actors,actor)
 	return actor
 end
 
-function maketank(x,y,d,vel)
+function maketank(x,y,d,vel,bt)
 	local tank=makeactor(1,x,y,d,vel)
 	tank.accel=0.08
 	tank.decel=0.02
@@ -91,6 +96,7 @@ function maketank(x,y,d,vel)
 	tank.gun.x=0
 	tank.gun.y=0
 	tank.gun.vec={0,0}
+	tank.bt=bt
 	
 	tank.xoff=-3
 	tank.yoff=-7
@@ -103,17 +109,11 @@ function makebullet(x,y,d,vel,bt)
 end
 
 function drawactor(t)
---	local mag=sqrt(t.gunx*t.gunx+t.guny*t.guny)
---	local normx,normy=t.gunx/mag,t.guny/mag
 	if t.t==1 then
 		spr(1,t.x+t.xoff,t.y+t.yoff)
 		line(t.x+1,t.y-4,t.gun.x,t.gun.y,8)
---		line(t.x-1,t.y-3,t.x+3,t.y-3,12)
 	elseif t.t==2 then
---		line(t.x,t.y,t.x-cos(t.d)*5,t.y-sin(t.d)*5,7)
---		line(t.x,t.y,t.tail[1],t.tail[2],7)
 		line(t.x,t.y,t.tail[1],t.tail[2],7)
---		rectfill(t.x,t.y,t.x+2,t.y+2,8)
 	end
 end
 
@@ -139,11 +139,9 @@ function controlactor(a)
 			end
 			if btn(0) then
 				a.gunangle=clamp(a.gunangle+0.02,0,0.5,true)
-				--if a.gunangle<0.5 then a.gunangle+=0.02 end
 			end
 			if btn(1) then 
 				a.gunangle=clamp(a.gunangle-0.02,0,0.5,true)
-				--if a.gunangle>0 then a.gunangle-=0.02 end
 			end
 		end
 		a.vel=clamp(a.vel,-a.maxvel,a.maxvel,true)
@@ -152,22 +150,21 @@ function controlactor(a)
 		a.gun.vec[2]=sin(a.gunangle)
 		a.gun.x=a.x+1+a.gun.vec[1]*a.gunlen
 		a.gun.y=a.y-4+a.gun.vec[2]*a.gunlen
-
---		a.gun.x=a.x+4+a.gun.vec[1]*a.gunlen
---		a.gun.y=a.y+3+a.gun.vec[2]*a.gunlen
 	elseif a.t==2 then
 		a.tail={a.x-a.vec[1],a.y-a.vec[2]}
 	end
 
 	if a.y<getground(a) then
-		a.y+=gravity*(timer-a.delta)
+		if a.grav then
+			a.y+=gravity*(timer-a.delta)
+		end
 	else
 		a.delta=timer
 		a.d=getgrounddir(a)
 		if a.t!=1 then
 			--make an array of functions for this?
 			--each function is indexed from array with the .bt value
-			if bullettype[a.bt][1] then
+			if bullettype[a.bt].dest then
 				del(actors,a)--delete for bounce!
 			end
 		end
@@ -184,12 +181,9 @@ function controlactor(a)
   a.gun.x=a.x+1+a.gun.vec[1]*a.gunlen
 		a.gun.y=a.y-4+a.gun.vec[2]*a.gunlen
 		if btn(4) then
---			local bdir=atan2(a.gun.vec[1]+a.vec[1],a.gun.vec[2]+a.vec[2])
-			local bvel=sqrt( (a.gun.vec[1]*bulletvel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bulletvel+a.vec[2]*a.vel)^2 )
+			local bvel=sqrt( (a.gun.vec[1]*bullettype[a.bt].vel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bullettype[a.bt].vel+a.vec[2]*a.vel)^2 )
 			makebullet(a.gun.x,a.gun.y,a.gunangle+rnd(0.04)-0.02,bvel,1)	
 		end
---		a.y=getground(a)
--- 	cam[1]=a.x-60+cos(actors[1].d)*actors[1].vel*10 cam[2]=a.y-80+sin(actors[1].d)*actors[1].vel*10
 		cam[1]=a.x-20 
 		if a.y<-60 then
 			cam[2]=-118+a.y+60--a.y-80
@@ -253,10 +247,6 @@ function debug_u()
 	end
 	debug_l[14]="tank vx:"..actors[1].vec[1]
 	debug_l[15]="tank vy:"..actors[1].vec[2]
---	if actors[2]!=nil then
---	debug_l[14]="bul vx:"..actors[2].vec[1]
---	debug_l[15]="bul vy:"..actors[2].vec[2]
---	end
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
