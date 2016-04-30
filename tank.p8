@@ -206,10 +206,10 @@ function controlactor(a)
 				a.vel-=a.decel
 			end
 			if btn(0) then
-				a.gun.angle=clamp(a.gun.angle+0.014,0,0.5,true)
+				a.gun.angle=clamp(a.gun.angle+0.016,0,0.5,true)
 			end
 			if btn(1) then 
-				a.gun.angle=clamp(a.gun.angle-0.014,0,0.5,true)
+				a.gun.angle=clamp(a.gun.angle-0.016,0,0.5,true)
 			end
 		end
 		a.vel=clamp(a.vel,-a.maxvel,a.maxvel,true)
@@ -246,8 +246,8 @@ function controlactor(a)
 --			a.vel-=a.decel
 			a.vel-=3
 		end
-		cam.enemy=clamp(-(actors[1].x-a.x)/2,-128,30,true)
---		cam.enemy=-(actors[1].x-a.x)/2
+--		cam.enemy=clamp(-(actors[1].x-a.x)/2,-128,30,true)
+		cam.enemy=-(actors[1].x-a.x)/2
 	elseif a.t==4 then
 		a.angle+=0.1*a.vec[1]
 		if timer-a.delta<=1 then
@@ -340,6 +340,7 @@ function controlactor(a)
 			cam.shake-=1
 		end
 		cam[1]=a.x+8*actors[1].vel+rnd(cam.shake)*2-56+cam.enemy
+--			cam[1]=clamp(a.x+8*actors[1].vel+rnd(cam.shake)*2-56+cam.enemy,actors[1].x-30,128,true)
 		if a.y<-60 then
 			cam[2]=-118+a.y+60--a.y-80
 		else
@@ -437,6 +438,8 @@ function debug_u()
 	debug_l[15]="tank vy:"..actors[1].vec[2]
 	debug_l[16]="enemy cnt:"..counters.enemies
 	debug_l[17]="enemy cam:"..cam.enemy
+	debug_l[18]="camx:"..cam[1]
+	debug_l[19]="camy:"..cam[2]
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
