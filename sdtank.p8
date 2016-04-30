@@ -6,7 +6,6 @@ debug_l={}
 
 function _init()
 	timer=0
-	pause=0
 	cam={0,0}
 	gravity=0.2
 	bullettype={}
@@ -15,7 +14,7 @@ function _init()
 	bullettype[1].vel=5
 	bullettype[1].dest=false--{destroy/bounce,momentum}
 	bullettype[2]={}
-	bullettype[2].vel=6
+	bullettype[2].vel=2.5
 	bullettype[2].dest=true--{destroy/bounce,momentum}
 
 	hillheight=120
@@ -51,7 +50,7 @@ function _init()
 		
 	end
 	actors={}
-	maketank(50,-50,0,0,2)
+	maketank(50,-50,0,0,1)
 	makeenemy(10,-100,0,1,1)
 end
 
@@ -91,16 +90,16 @@ end
 
 function maketank(x,y,d,vel,bt)
 	local tank=makeactor(1,x,y,d,vel)
-	tank.bt=bt
 	tank.accel=0.08
 	tank.decel=0.02
 	tank.maxvel=5
+	tank.gunangle=0.25
+	tank.gunlen=6
 	tank.gun={}
-	tank.gun.angle=0.25
-	tank.gun.len=6
 	tank.gun.x=0
 	tank.gun.y=0
 	tank.gun.vec={0,0}
+	tank.bt=bt
 	
 	tank.xoff=-3
 	tank.yoff=-7
@@ -114,25 +113,12 @@ end
 
 function makeenemy(x,y,d,vel,bt)
 	local enemy=makeactor(3,x,y,d,vel)
-	enemy.hp=3
 	enemy.grav=false
 	enemy.hitbox={}
 	enemy.hitbox.x=2
 	enemy.hitbox.y=3
 	enemy.hitbox.w=10
 	enemy.hitbox.h=3
-end
-
-function makedebris(x,y)
-	local debris=makeactor(4,x,y,rnd(0.5),rnd(4)+3)
-	debris.angle=rnd(1)
-	debris.w=6
-end
-
-function makeexplosion(x,y)
-	local e=makeactor(5,x,y,0,0)
-	e.grav=false
-	e.delta=timer
 end
 
 function drawactor(t)
@@ -146,23 +132,12 @@ function drawactor(t)
 		if debug then
 		rect(t.x+t.hitbox.x,t.y+t.hitbox.y,t.x+t.hitbox.x+t.hitbox.w,t.y+t.hitbox.y+t.hitbox.h,12)
 		end
-	elseif t.t==4 then
---		line(t.x,t.y,t.x+cos(t.angle)*t.w,t.y+sin(t.angle)*t.w,8)
-		line(t.x-cos(t.angle)*t.w/2,t.y-sin(t.angle)*t.w/2,t.x+cos(t.angle)*t.w,t.y+sin(t.angle)*t.w,8)
-	elseif t.t==5 then
-		circfill(t.x,t.y,5+(timer-t.delta)*10,7)
 	end
 end
 
 function controlactor(a)
 	if a.t==1 then
 		if btn(5) then
---			if btn(2) then
---				if a.y>=getground(a) then
---					a.y-=2
---				end
---				a.vel+=a.accel
---				a.d=0.25
 			if btn(0) then 
 				a.vel-=a.accel
 			elseif btn(1) then 
@@ -181,18 +156,18 @@ function controlactor(a)
 				a.vel-=a.decel
 			end
 			if btn(0) then
-				a.gun.angle=clamp(a.gun.angle+0.02,0,0.5,true)
+				a.gunangle=clamp(a.gunangle+0.02,0,0.5,true)
 			end
 			if btn(1) then 
-				a.gun.angle=clamp(a.gun.angle-0.02,0,0.5,true)
+				a.gunangle=clamp(a.gunangle-0.02,0,0.5,true)
 			end
 		end
 		a.vel=clamp(a.vel,-a.maxvel,a.maxvel,true)
 		
-		a.gun.vec[1]=cos(a.gun.angle)
-		a.gun.vec[2]=sin(a.gun.angle)
-		a.gun.x=a.x+1+a.gun.vec[1]*a.gun.len
-		a.gun.y=a.y-4+a.gun.vec[2]*a.gun.len
+		a.gun.vec[1]=cos(a.gunangle)
+		a.gun.vec[2]=sin(a.gunangle)
+		a.gun.x=a.x+1+a.gun.vec[1]*a.gunlen
+		a.gun.y=a.y-4+a.gun.vec[2]*a.gunlen
 	elseif a.t==2 then
 		a.tail={a.x-a.vec[1],a.y-a.vec[2]}
 --		foreach(actors,hitactor)
@@ -204,17 +179,10 @@ function controlactor(a)
 			and a.y<enemy.y+enemy.hitbox.y+enemy.hitbox.h then
 --			and a.x>enemy.x+enemy.hitbox.x+enemy.hitbox.w
 --			and a.x<enemy.x+enemy.hitbox.x+enemy.hitbox.w
-				damageactor(enemy,1)
+				del(actors,enemy)
 				del(actors,a)
 			end
 			end
-		end
-	elseif a.t==4 then
-		a.angle+=0.1*a.vec[1]
---		a.angle+=0.01*a.vel
-	elseif a.t==5 then
-		if timer-a.delta==2 then
-			del(actors,a)
 		end
 	end
 
@@ -226,10 +194,9 @@ function controlactor(a)
 		a.delta=timer
 		a.d=getgrounddir(a)
 		if a.t==2 then
-			sfx(4)
 			--make an array of functions for this?
 			--each function is indexed from array with the .bt value
-			if bullettype[actors[1].bt].dest then
+			if bullettype[a.bt].dest then
 				del(actors,a)--delete for bounce!
 			end
 		end
@@ -243,15 +210,11 @@ function controlactor(a)
  
  if a.x<cam[1]-128 or a.x>cam[1]+256 or a.y>128 then del(actors,a) end
  if a.t==1 then
-  a.gun.x=a.x+1+a.gun.vec[1]*a.gun.len
-		a.gun.y=a.y-4+a.gun.vec[2]*a.gun.len
+  a.gun.x=a.x+1+a.gun.vec[1]*a.gunlen
+		a.gun.y=a.y-4+a.gun.vec[2]*a.gunlen
 		if btn(4) then
-			sfx(3)
 			local bvel=sqrt( (a.gun.vec[1]*bullettype[a.bt].vel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bullettype[a.bt].vel+a.vec[2]*a.vel)^2 )
-			makebullet(a.gun.x,a.gun.y,a.gun.angle+rnd(0.04)-0.02,bvel,1)	
-			if a.gun.angle<0.25 then
-				a.gun.angle+=0.02
-			end
+			makebullet(a.gun.x,a.gun.y,a.gunangle+rnd(0.04)-0.02,bvel,1)	
 		end
 		cam[1]=a.x-20 
 		if a.y<-60 then
@@ -262,29 +225,9 @@ function controlactor(a)
  end
 end
 
-function damageactor(a,d)
-	sfx(5)
-	pal(8,7)
-	a.hp-=d
-	if a.hp<1 then
-		sfx(2)
-		pause=2
-		for b=1,6 do
-			makedebris(a.x,a.y)
-		end
-		makeexplosion(a.x,a.y)
-		del(actors,a)
-	end
-end
-
 function _update()
-	if pause==0 then
-		foreach(actors,controlactor)
-		timer+=1
-	else
-		pause-=1
-	end
-	
+	foreach(actors,controlactor)
+	timer+=1
 	debug_u()
 end
 
@@ -302,7 +245,6 @@ function _draw()
 			print(debug_l[a],cam[1]+0,cam[2]+(a-1)*6,8)
 		end
 	end
-	pal()
 end
 
 function clamp(v,mi,ma,h)
@@ -328,7 +270,7 @@ function debug_u()
 	debug_l[7]="tank vel:"..actors[1].vel
 	debug_l[8]="gun x:"..actors[1].gun.x
 	debug_l[9]="gun y:"..actors[1].gun.y
-	debug_l[10]="gun d:"..actors[1].gun.angle
+	debug_l[10]="gun d:"..actors[1].gunangle
 	debug_l[11]="gun vx:"..actors[1].gun.vec[1]
 	debug_l[12]="gun vy:"..actors[1].gun.vec[2]	
 	debug_l[13]="ratio:"..getground(actors[1])
@@ -505,11 +447,11 @@ __map__
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
 000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-000300002866019650106500b65008640056400464003630026300163001630016200162001610016100161001610016100161001610016100161000000000000000000000000000000000000000000000000000
-000300003067002610186600266008650056500465003640026400163001630016200162001610016100161001610016100161001610016100160000000000000000000000000000000000000000000000000000
-00030000166500f640036300162001610000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-000100001c6300e620066100060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600
-000200001c64000000357503574035750357403575035740357503574035730357203570000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
