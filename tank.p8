@@ -13,12 +13,15 @@ function _init()
 --	bullettype[1]={false,false}--{destroy/bounce,momentum}
 	bullettype[1]={}
 	bullettype[1].vel=5
+	bullettype[1].rof=5
 	bullettype[1].dest=false--{destroy/bounce,momentum}
 	bullettype[2]={}
 	bullettype[2].vel=6
+	bullettype[2].rof=2
 	bullettype[2].dest=true--{destroy/bounce,momentum}
 
-	hillheight=120
+--	hillheight=120
+	hillheight=60
 	groundheight=10
 	hillwidth=3--how many hills before go back to ground
 	groundwidth=3--how many low areas before go back to hill
@@ -52,7 +55,7 @@ function _init()
 	end
 	actors={}
 	maketank(50,-50,0,0,2)
-	makeenemy(10,-100,0,1,1)
+	makeenemy(10,-80,0,1,1)
 end
 
 function getground(a)
@@ -101,6 +104,7 @@ function maketank(x,y,d,vel,bt)
 	tank.gun.x=0
 	tank.gun.y=0
 	tank.gun.vec={0,0}
+	tank.gun.delta=0
 	
 	tank.xoff=-3
 	tank.yoff=-7
@@ -246,11 +250,16 @@ function controlactor(a)
   a.gun.x=a.x+1+a.gun.vec[1]*a.gun.len
 		a.gun.y=a.y-4+a.gun.vec[2]*a.gun.len
 		if btn(4) then
-			sfx(3)
-			local bvel=sqrt( (a.gun.vec[1]*bullettype[a.bt].vel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bullettype[a.bt].vel+a.vec[2]*a.vel)^2 )
-			makebullet(a.gun.x,a.gun.y,a.gun.angle+rnd(0.04)-0.02,bvel,1)	
-			if a.gun.angle<0.25 then
-				a.gun.angle+=0.02
+			if a.gun.delta==0 then
+				sfx(3)
+				local bvel=sqrt( (a.gun.vec[1]*bullettype[a.bt].vel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bullettype[a.bt].vel+a.vec[2]*a.vel)^2 )
+				makebullet(a.gun.x,a.gun.y,a.gun.angle+rnd(0.04)-0.02,bvel,1)	
+				if a.gun.angle<0.25 then
+					a.gun.angle+=0.02
+				end
+				a.gun.delta=bullettype[a.bt].rof
+			else 
+				a.gun.delta-=1
 			end
 		end
 		cam[1]=a.x-20 
