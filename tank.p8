@@ -7,7 +7,11 @@ debug_l={}
 function _init()
 	timer=0
 	pause=0
+	counters={}	
+	counters.enemies=0
 	cam={0,0}
+	cam.shake=0
+	cam.enemy=0
 	gravity=0.2
 	bullettype={}
 --	bullettype[1]={false,false}--{destroy/bounce,momentum}
@@ -55,7 +59,7 @@ function _init()
 	end
 	actors={}
 	maketank(50,-50,0,0,2)
-	makeenemy(10,-80,0,1,1)
+--	makeenemy(10,-80,0,1,1)
 end
 
 function getground(a)
@@ -88,6 +92,10 @@ function makeactor(t,x,y,d,vel)
 	actor.vel=vel
 	actor.grav=true
 	actor.delta=timer
+	actor.accel=0.08
+	actor.decel=0.02
+	actor.maxvel=5
+
 	add(actors,actor)
 	return actor
 end
@@ -95,9 +103,9 @@ end
 function maketank(x,y,d,vel,bt)
 	local tank=makeactor(1,x,y,d,vel)
 	tank.bt=bt
-	tank.accel=0.08
-	tank.decel=0.02
-	tank.maxvel=5
+--	tank.accel=0.08
+--	tank.decel=0.02
+--	tank.maxvel=5
 	tank.gun={}
 	tank.gun.angle=0.25
 	tank.gun.len=6
@@ -120,21 +128,31 @@ function makeenemy(x,y,d,vel,bt)
 	local enemy=makeactor(3,x,y,d,vel)
 	enemy.hp=3
 	enemy.grav=false
+--	enemy.delta=timer
 	enemy.hitbox={}
-	enemy.hitbox.x=2
-	enemy.hitbox.y=3
-	enemy.hitbox.w=10
-	enemy.hitbox.h=3
+	enemy.hitbox.x=1
+	enemy.hitbox.y=2
+	enemy.hitbox.w=11
+	enemy.hitbox.h=4
+	counters.enemies+=1
 end
 
 function makedebris(x,y)
 	local debris=makeactor(4,x,y,rnd(0.5),rnd(4)+3)
+	debris.delta=timer
 	debris.angle=rnd(1)
 	debris.w=6
+	debris.bounce=0
 end
 
 function makeexplosion(x,y)
 	local e=makeactor(5,x,y,0,0)
+	e.grav=false
+	e.delta=timer
+end
+
+function makecloud(x,y)
+	local e=makeactor(6,x,y,0,0)
 	e.grav=false
 	e.delta=timer
 end
@@ -144,6 +162,7 @@ function drawactor(t)
 		spr(1,t.x+t.xoff,t.y+t.yoff)
 		line(t.x+1,t.y-4,t.gun.x,t.gun.y,8)
 	elseif t.t==2 then
+--		line(t.x,t.y,t.x,t.y,7)
 		line(t.x,t.y,t.tail[1],t.tail[2],7)
 	elseif t.t==3 then
 		spr(17,t.x,t.y,2,1)
@@ -155,6 +174,8 @@ function drawactor(t)
 		line(t.x-cos(t.angle)*t.w/2,t.y-sin(t.angle)*t.w/2,t.x+cos(t.angle)*t.w,t.y+sin(t.angle)*t.w,8)
 	elseif t.t==5 then
 		circfill(t.x,t.y,5+(timer-t.delta)*10,7)
+	elseif t.t==6 then
+		circfill(t.x,t.y,10-(timer-t.delta)*1,5)
 	end
 end
 
@@ -171,12 +192,12 @@ function controlactor(a)
 				a.vel-=a.accel
 			elseif btn(1) then 
 				a.vel+=a.accel
-			else
-				if a.vel<0 then
-					a.vel+=a.decel
-				elseif a.vel>0 then
-					a.vel-=a.decel
-				end
+--			else
+--				if a.vel<0 then
+--					a.vel+=a.decel
+--				elseif a.vel>0 then
+--					a.vel-=a.decel
+--				end
 			end
 		else
 			if a.vel<0 then
@@ -185,10 +206,10 @@ function controlactor(a)
 				a.vel-=a.decel
 			end
 			if btn(0) then
-				a.gun.angle=clamp(a.gun.angle+0.02,0,0.5,true)
+				a.gun.angle=clamp(a.gun.angle+0.014,0,0.5,true)
 			end
 			if btn(1) then 
-				a.gun.angle=clamp(a.gun.angle-0.02,0,0.5,true)
+				a.gun.angle=clamp(a.gun.angle-0.014,0,0.5,true)
 			end
 		end
 		a.vel=clamp(a.vel,-a.maxvel,a.maxvel,true)
@@ -213,11 +234,42 @@ function controlactor(a)
 			end
 			end
 		end
+	elseif a.t==3 then
+		if a.x<=actors[1].x then
+			a.maxvel=8
+		else
+			a.maxvel=4
+		end
+		if a.vel<=a.maxvel then
+			a.vel+=a.accel
+		else
+--			a.vel-=a.decel
+			a.vel-=3
+		end
+		cam.enemy=clamp(-(actors[1].x-a.x)/2,-128,30,true)
+--		cam.enemy=-(actors[1].x-a.x)/2
 	elseif a.t==4 then
 		a.angle+=0.1*a.vec[1]
+		if timer-a.delta<=1 then
+			a.bounce+=1
+--			for j=1,4 do
+--				makecloud(a.x+rnd(20)-10,a.y+rnd(20)-10)
+--			end
+		end
+		if a.bounce==4 then
+			for j=1,4 do
+				makecloud(a.x+rnd(20)-10,a.y+rnd(20)-10)
+			end
+			sfx(6)
+			del(actors,a)
+		end
 --		a.angle+=0.01*a.vel
 	elseif a.t==5 then
 		if timer-a.delta==2 then
+			del(actors,a)
+		end
+	elseif a.t==6 then
+		if timer-a.delta==30 then
 			del(actors,a)
 		end
 	end
@@ -227,8 +279,12 @@ function controlactor(a)
 			a.y+=gravity*(timer-a.delta)
 		end
 	else
-		a.delta=timer
-		a.d=getgrounddir(a)
+		if a.t!=6 then
+			a.delta=timer
+		end
+		if a.t!=4 then
+			a.d=getgrounddir(a)
+		end
 		if a.t==2 then
 			sfx(4)
 			--make an array of functions for this?
@@ -245,7 +301,23 @@ function controlactor(a)
 	a.x+=a.vec[1]*a.vel
  a.y+=a.vec[2]*a.vel
  
- if a.x<cam[1]-128 or a.x>cam[1]+256 or a.y>128 then del(actors,a) end
+ 				if a.vel<0 then
+					a.vel+=a.decel
+				elseif a.vel>0 then
+					a.vel-=a.decel
+				end
+
+ 
+ if a.x<cam[1]-128
+ or a.x>cam[1]+256
+ or a.y>128 
+ or a.y<-256
+ then
+ 	if a.t==3 then
+ 		counters.enemies-=1
+ 	end
+ 	del(actors,a)
+ end
  if a.t==1 then
   a.gun.x=a.x+1+a.gun.vec[1]*a.gun.len
 		a.gun.y=a.y-4+a.gun.vec[2]*a.gun.len
@@ -253,8 +325,10 @@ function controlactor(a)
 			if a.gun.delta==0 then
 				sfx(3)
 				local bvel=sqrt( (a.gun.vec[1]*bullettype[a.bt].vel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bullettype[a.bt].vel+a.vec[2]*a.vel)^2 )
-				makebullet(a.gun.x,a.gun.y,a.gun.angle+rnd(0.04)-0.02,bvel,1)	
+--				makebullet(a.gun.x,a.gun.y,a.gun.angle+rnd(0.04)-0.02,bvel,1)	
+					makebullet(a.gun.x,a.gun.y,a.gun.angle+rnd(0.02)-0.01,bvel,1)	
 				if a.gun.angle<0.25 then
+--					a.gun.angle+=0.02
 					a.gun.angle+=0.02
 				end
 				a.gun.delta=bullettype[a.bt].rof
@@ -262,7 +336,10 @@ function controlactor(a)
 				a.gun.delta-=1
 			end
 		end
-		cam[1]=a.x-20 
+		if cam.shake>0 then
+			cam.shake-=1
+		end
+		cam[1]=a.x+8*actors[1].vel+rnd(cam.shake)*2-56+cam.enemy
 		if a.y<-60 then
 			cam[2]=-118+a.y+60--a.y-80
 		else
@@ -281,14 +358,26 @@ function damageactor(a,d)
 		for b=1,6 do
 			makedebris(a.x,a.y)
 		end
+		for j=1,10 do
+			makecloud(a.x+rnd(20)-10,a.y+rnd(20)-10)
+		end
 		makeexplosion(a.x,a.y)
+		cam.shake=10
 		del(actors,a)
+		counters.enemies-=1
+	end
+end
+
+function spawnentities()
+	if counters.enemies==0 then
+		makeenemy(actors[1].x-38,-100+rnd(40),0,1,6)
 	end
 end
 
 function _update()
 	if pause==0 then
 		foreach(actors,controlactor)
+		spawnentities()
 		timer+=1
 	else
 		pause-=1
@@ -346,6 +435,8 @@ function debug_u()
 	end
 	debug_l[14]="tank vx:"..actors[1].vec[1]
 	debug_l[15]="tank vy:"..actors[1].vec[2]
+	debug_l[16]="enemy cnt:"..counters.enemies
+	debug_l[17]="enemy cam:"..cam.enemy
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -519,8 +610,8 @@ __sfx__
 00030000166500f640036300162001610000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000100001c6300e620066100060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600
 000200001c64000000357503574035750357403575035740357503574035730357203570000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000400002661003610026100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000400000172001600016100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
