@@ -103,6 +103,7 @@ end
 function maketank(x,y,d,vel,bt)
 	local tank=makeactor(1,x,y,d,vel)
 	tank.bt=bt
+	tank.boost=0
 --	tank.accel=0.08
 --	tank.decel=0.02
 --	tank.maxvel=5
@@ -182,12 +183,15 @@ end
 function controlactor(a)
 	if a.t==1 then
 		if btn(5) then
+			
 --			if btn(2) then
 --				if a.y>=getground(a) then
 --					a.y-=2
 --				end
 --				a.vel+=a.accel
 --				a.d=0.25
+			if a.boost==0 then
+
 			if btn(0) then 
 				a.vel-=a.accel
 			elseif btn(1) then 
@@ -198,6 +202,13 @@ function controlactor(a)
 --				elseif a.vel>0 then
 --					a.vel-=a.decel
 --				end
+			end
+			if btnp(2) then
+				a.d=0.1
+				a.vel=30
+				a.boost=360
+			end
+
 			end
 		else
 			if a.vel<0 then
@@ -340,7 +351,7 @@ function controlactor(a)
 		if cam.shake>0 then
 			cam.shake-=1
 		end
-		cam[1]=a.x+8*actors[1].vel+rnd(cam.shake)*2-56+cam.enemy
+		cam[1]=a.x+8*actors[1].vel+rnd(cam.shake)*2-56--+cam.enemy
 --			cam[1]=clamp(a.x+8*actors[1].vel+rnd(cam.shake)*2-56+cam.enemy,actors[1].x-30,128,true)
 		if a.y<-60 then
 			cam[2]=-118+a.y+60--a.y-80
