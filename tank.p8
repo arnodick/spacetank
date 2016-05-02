@@ -235,7 +235,7 @@ function controlactor(a)
 			end
 		end
 	elseif a.t==3 then
-		if a.x<=actors[1].x then
+		if a.x<=actors[1].x+50 then
 			a.maxvel=8
 		else
 			a.maxvel=4
@@ -324,6 +324,7 @@ function controlactor(a)
 		if btn(4) then
 			if a.gun.delta==0 then
 				sfx(3)
+--				cam.shake=3
 				local bvel=sqrt( (a.gun.vec[1]*bullettype[a.bt].vel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bullettype[a.bt].vel+a.vec[2]*a.vel)^2 )
 --				makebullet(a.gun.x,a.gun.y,a.gun.angle+rnd(0.04)-0.02,bvel,1)	
 					makebullet(a.gun.x,a.gun.y,a.gun.angle+rnd(0.02)-0.01,bvel,1)	
