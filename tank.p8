@@ -13,8 +13,16 @@ function _init()
 	cam.shake=0
 	cam.enemy=0
 	gravity=0.2
+	
+	enums={}
+	enums.tank=1
+	enums.bullet=2
+	enums.enemy=3
+	enums.debris=4
+	enums.explosion=5
+	enums.cloud=6
+
 	bullettype={}
---	bullettype[1]={false,false}--{destroy/bounce,momentum}
 	bullettype[1]={}
 	bullettype[1].vel=5
 	bullettype[1].rof=5
@@ -24,7 +32,6 @@ function _init()
 	bullettype[2].rof=2
 	bullettype[2].dest=true--{destroy/bounce,momentum}
 
---	hillheight=120
 	hillheight=60
 	groundheight=10
 	hillwidth=3--how many hills before go back to ground
@@ -59,7 +66,6 @@ function _init()
 	end
 	actors={}
 	maketank(50,-50,0,0,2)
---	makeenemy(10,-80,0,1,1)
 end
 
 function getground(a)
@@ -103,10 +109,6 @@ end
 function maketank(x,y,d,vel,bt)
 	local tank=makeactor(1,x,y,d,vel)
 	tank.bt=bt
-	tank.boost=0
---	tank.accel=0.08
---	tank.decel=0.02
---	tank.maxvel=5
 	tank.gun={}
 	tank.gun.angle=0.25
 	tank.gun.len=6
@@ -129,7 +131,6 @@ function makeenemy(x,y,d,vel,bt)
 	local enemy=makeactor(3,x,y,d,vel)
 	enemy.hp=3
 	enemy.grav=false
---	enemy.delta=timer
 	enemy.hitbox={}
 	enemy.hitbox.x=1
 	enemy.hitbox.y=2
@@ -159,56 +160,32 @@ function makecloud(x,y)
 end
 
 function drawactor(t)
-	if t.t==1 then
+	if t.t==enums.tank then
 		spr(1,t.x+t.xoff,t.y+t.yoff)
 		line(t.x+1,t.y-4,t.gun.x,t.gun.y,8)
-	elseif t.t==2 then
---		line(t.x,t.y,t.x,t.y,7)
+	elseif t.t==enums.bullet then
 		line(t.x,t.y,t.tail[1],t.tail[2],7)
-	elseif t.t==3 then
+	elseif t.t==enums.enemy then
 		spr(17,t.x,t.y,2,1)
 		if debug then
 		rect(t.x+t.hitbox.x,t.y+t.hitbox.y,t.x+t.hitbox.x+t.hitbox.w,t.y+t.hitbox.y+t.hitbox.h,12)
 		end
-	elseif t.t==4 then
---		line(t.x,t.y,t.x+cos(t.angle)*t.w,t.y+sin(t.angle)*t.w,8)
+	elseif t.t==enums.debris then
 		line(t.x-cos(t.angle)*t.w/2,t.y-sin(t.angle)*t.w/2,t.x+cos(t.angle)*t.w,t.y+sin(t.angle)*t.w,8)
-	elseif t.t==5 then
+	elseif t.t==enums.explosion then
 		circfill(t.x,t.y,5+(timer-t.delta)*10,7)
-	elseif t.t==6 then
+	elseif t.t==enums.cloud then
 		circfill(t.x,t.y,10-(timer-t.delta)*1,5)
 	end
 end
 
 function controlactor(a)
-	if a.t==1 then
+	if a.t==enums.tank then
 		if btn(5) then
-			
---			if btn(2) then
---				if a.y>=getground(a) then
---					a.y-=2
---				end
---				a.vel+=a.accel
---				a.d=0.25
-			if a.boost==0 then
-
 			if btn(0) then 
 				a.vel-=a.accel
 			elseif btn(1) then 
 				a.vel+=a.accel
---			else
---				if a.vel<0 then
---					a.vel+=a.decel
---				elseif a.vel>0 then
---					a.vel-=a.decel
---				end
-			end
-			if btnp(2) then
-				a.d=0.1
-				a.vel=30
-				a.boost=360
-			end
-
 			end
 		else
 			if a.vel<0 then
@@ -229,11 +206,11 @@ function controlactor(a)
 		a.gun.vec[2]=sin(a.gun.angle)
 		a.gun.x=a.x+1+a.gun.vec[1]*a.gun.len
 		a.gun.y=a.y-4+a.gun.vec[2]*a.gun.len
-	elseif a.t==2 then
+	elseif a.t==enums.bullet then
 		a.tail={a.x-a.vec[1],a.y-a.vec[2]}
 --		foreach(actors,hitactor)
 		for enemy in all(actors) do
-			if enemy.t==3 then
+			if enemy.t==enums.enemy then
 			if  a.x>enemy.x+enemy.hitbox.x
 			and a.x<enemy.x+enemy.hitbox.x+enemy.hitbox.w
 			and a.y>enemy.y+enemy.hitbox.y
@@ -245,7 +222,7 @@ function controlactor(a)
 			end
 			end
 		end
-	elseif a.t==3 then
+	elseif a.t==enums.enemy then
 		if a.x<=actors[1].x+50 then
 			a.maxvel=8
 		else
@@ -259,13 +236,10 @@ function controlactor(a)
 		end
 --		cam.enemy=clamp(-(actors[1].x-a.x)/2,-128,30,true)
 		cam.enemy=-(actors[1].x-a.x)/2
-	elseif a.t==4 then
+	elseif a.t==enums.debris then
 		a.angle+=0.1*a.vec[1]
 		if timer-a.delta<=1 then
 			a.bounce+=1
---			for j=1,4 do
---				makecloud(a.x+rnd(20)-10,a.y+rnd(20)-10)
---			end
 		end
 		if a.bounce==4 then
 			for j=1,4 do
@@ -274,12 +248,11 @@ function controlactor(a)
 			sfx(6)
 			del(actors,a)
 		end
---		a.angle+=0.01*a.vel
-	elseif a.t==5 then
+	elseif a.t==enums.explosion then
 		if timer-a.delta==2 then
 			del(actors,a)
 		end
-	elseif a.t==6 then
+	elseif a.t==enums.cloud then
 		if timer-a.delta==30 then
 			del(actors,a)
 		end
@@ -290,17 +263,18 @@ function controlactor(a)
 			a.y+=gravity*(timer-a.delta)
 		end
 	else
-		if a.t!=6 then
+		if a.t!=enums.cloud then
 			a.delta=timer
 		end
-		if a.t!=4 then
+		if a.t!=enums.debris then
 			a.d=getgrounddir(a)
 		end
-		if a.t==2 then
+		if a.t==enums.bullet then
 			sfx(4)
 			--make an array of functions for this?
 			--each function is indexed from array with the .bt value
 			if bullettype[actors[1].bt].dest then
+				makecloud(a.x+rnd(20)-10,a.y+rnd(20)-10)
 				del(actors,a)--delete for bounce!
 			end
 		end
@@ -312,11 +286,11 @@ function controlactor(a)
 	a.x+=a.vec[1]*a.vel
  a.y+=a.vec[2]*a.vel
  
- 				if a.vel<0 then
-					a.vel+=a.decel
-				elseif a.vel>0 then
-					a.vel-=a.decel
-				end
+ if a.vel<0 then
+		a.vel+=a.decel
+	elseif a.vel>0 then
+		a.vel-=a.decel
+	end
 
  
  if a.x<cam[1]-128
@@ -324,23 +298,20 @@ function controlactor(a)
  or a.y>128 
  or a.y<-256
  then
- 	if a.t==3 then
+ 	if a.t==enums.enemy then
  		counters.enemies-=1
  	end
  	del(actors,a)
  end
- if a.t==1 then
+ if a.t==enums.tank then
   a.gun.x=a.x+1+a.gun.vec[1]*a.gun.len
 		a.gun.y=a.y-4+a.gun.vec[2]*a.gun.len
 		if btn(4) then
 			if a.gun.delta==0 then
 				sfx(3)
---				cam.shake=3
 				local bvel=sqrt( (a.gun.vec[1]*bullettype[a.bt].vel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bullettype[a.bt].vel+a.vec[2]*a.vel)^2 )
---				makebullet(a.gun.x,a.gun.y,a.gun.angle+rnd(0.04)-0.02,bvel,1)	
 					makebullet(a.gun.x,a.gun.y,a.gun.angle+rnd(0.02)-0.01,bvel,1)	
 				if a.gun.angle<0.25 then
---					a.gun.angle+=0.02
 					a.gun.angle+=0.02
 				end
 				a.gun.delta=bullettype[a.bt].rof
