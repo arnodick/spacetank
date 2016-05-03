@@ -36,6 +36,7 @@ function _init()
 	groundheight=10
 	hillwidth=3--how many hills before go back to ground
 	groundwidth=3--how many low areas before go back to hill
+	hillspacing=50
 	local los,his=0,0
 	ground={}
 	ground[1]={-64,0}
@@ -57,7 +58,7 @@ function _init()
 		else
 				los+=1
 		end
-		ground[a]={a*50,-flr(rnd(h))}
+		ground[a]={a*hillspacing,-flr(rnd(h))}
 		local w=ground[a][1]-ground[a-1][1]
 		local h=ground[a-1][2]-ground[a][2]
 		ground[a-1].ratio=h/w
@@ -188,11 +189,6 @@ function controlactor(a)
 				a.vel+=a.accel
 			end
 		else
-			if a.vel<0 then
-				a.vel+=a.decel
-			elseif a.vel>0 then
-				a.vel-=a.decel
-			end
 			if btn(0) then
 				a.gun.angle=clamp(a.gun.angle+0.016,0,0.5,true)
 			end
@@ -231,7 +227,6 @@ function controlactor(a)
 		if a.vel<=a.maxvel then
 			a.vel+=a.accel
 		else
---			a.vel-=a.decel
 			a.vel-=3
 		end
 --		cam.enemy=clamp(-(actors[1].x-a.x)/2,-128,30,true)
