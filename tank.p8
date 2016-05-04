@@ -39,7 +39,7 @@ function _init()
 	hillspacing=50
 	local los,his=0,0
 	ground={}
-	ground[1]={-64,0}
+	ground[1]={0,0}
 	for a=2,200 do
 		local h=0
 		h=groundheight
@@ -66,17 +66,16 @@ function _init()
 		
 	end
 	actors={}
-	maketank(50,-50,0,0,2)
+	maketank(100,-50,0,0,2)
 end
 
 function getground(a)
-	for b=1,#ground-1 do
-		if ground[b][1]<a.x and ground[b+1][1]>a.x then
-			local w=a.x-ground[b][1]
-			return ground[b][2]-w*ground[b].ratio
-		elseif ground[b][1]==a.x then
-			return ground[b][2]
-		end
+	local gx=flr(a.x/hillspacing)
+	if ground[gx][1]<a.x and ground[gx+1][1]>a.x then
+		local w=a.x-ground[gx][1]
+		return ground[gx][2]-w*ground[gx].ratio
+	elseif ground[gx][1]==a.x then
+		return ground[gx][2]
 	end
 end
 
@@ -154,8 +153,9 @@ function makeexplosion(x,y)
 	e.delta=timer
 end
 
-function makecloud(x,y)
+function makecloud(x,y,r)
 	local e=makeactor(6,x,y,0,0)
+	e.r=r
 	e.grav=false
 	e.delta=timer
 end
@@ -176,7 +176,7 @@ function drawactor(t)
 	elseif t.t==enums.explosion then
 		circfill(t.x,t.y,5+(timer-t.delta)*10,7)
 	elseif t.t==enums.cloud then
-		circfill(t.x,t.y,10-(timer-t.delta)*1,5)
+		circfill(t.x,t.y,t.r-(timer-t.delta)*1,5)
 	end
 end
 
@@ -238,7 +238,7 @@ function controlactor(a)
 		end
 		if a.bounce==4 then
 			for j=1,4 do
-				makecloud(a.x+rnd(20)-10,a.y+rnd(20)-10)
+				makecloud(a.x+rnd(20)-10,a.y+rnd(20)-10,6)
 			end
 			sfx(6)
 			del(actors,a)
@@ -269,7 +269,7 @@ function controlactor(a)
 			--make an array of functions for this?
 			--each function is indexed from array with the .bt value
 			if bullettype[actors[1].bt].dest then
-				makecloud(a.x+rnd(20)-10,a.y+rnd(20)-10)
+				makecloud(a.x+rnd(20)-10,a.y+rnd(20)-10,5)
 				del(actors,a)--delete for bounce!
 			end
 		end
@@ -299,11 +299,15 @@ function controlactor(a)
  	del(actors,a)
  end
  if a.t==enums.tank then
+ 	if a.gun.len<6 then
+ 		a.gun.len+=1.5
+ 	end
   a.gun.x=a.x+1+a.gun.vec[1]*a.gun.len
 		a.gun.y=a.y-4+a.gun.vec[2]*a.gun.len
 		if btn(4) then
 			if a.gun.delta==0 then
 				sfx(3)
+				a.gun.len=0
 				local bvel=sqrt( (a.gun.vec[1]*bullettype[a.bt].vel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bullettype[a.bt].vel+a.vec[2]*a.vel)^2 )
 					makebullet(a.gun.x,a.gun.y,a.gun.angle+rnd(0.02)-0.01,bvel,1)	
 				if a.gun.angle<0.25 then
@@ -338,7 +342,7 @@ function damageactor(a,d)
 			makedebris(a.x,a.y)
 		end
 		for j=1,10 do
-			makecloud(a.x+rnd(20)-10,a.y+rnd(20)-10)
+			makecloud(a.x+rnd(20)-10,a.y+rnd(20)-10,10)
 		end
 		makeexplosion(a.x,a.y)
 		cam.shake=10
@@ -374,6 +378,7 @@ function _draw()
 		line(ground[a][1]+8,ground[a][2]+8,ground[a+1][1]+8,ground[a+1][2]+8,7)
 	end
 	foreach(actors,drawactor)
+	drawactor(actors[1])--so that tank is drawn over other stuff like bullets
 	if debug then
 		for a=1,#debug_l do
 			print(debug_l[a],cam[1]+0,cam[2]+(a-1)*6,8)
