@@ -163,7 +163,7 @@ end
 function drawactor(t)
 	if t.t==enums.tank then
 		spr(1,t.x+t.xoff,t.y+t.yoff)
-		line(t.x+1,t.y-4,t.gun.x,t.gun.y,8)
+		line(t.x+1,t.y-4+t.yoff+7,t.gun.x,t.gun.y+7,8)
 	elseif t.t==enums.bullet then
 		line(t.x,t.y,t.tail[1],t.tail[2],7)
 	elseif t.t==enums.enemy then
@@ -260,12 +260,15 @@ function controlactor(a)
 		end
 	else
 		if a.t==enums.tank then
-			a.yoff+=sin(timer/10)
-		elseif a.t!=enums.cloud then
+			a.yoff+=sin(timer/(12))
+		end
+		if a.t!=enums.cloud then
 			a.delta=timer
-		elseif a.t!=enums.debris then
+		end
+		if a.t!=enums.debris then
 			a.d=getgrounddir(a)
-		elseif a.t==enums.bullet then
+		end
+		if a.t==enums.bullet then
 			sfx(4)
 			--make an array of functions for this?
 			--each function is indexed from array with the .bt value
@@ -304,13 +307,13 @@ function controlactor(a)
  		a.gun.len+=1.5
  	end
   a.gun.x=a.x+1+a.gun.vec[1]*a.gun.len
-		a.gun.y=a.y-4+a.gun.vec[2]*a.gun.len
+		a.gun.y=a.y-4+a.gun.vec[2]*a.gun.len+a.yoff
 		if btn(4) then
 			if a.gun.delta==0 then
 				sfx(3)
 				a.gun.len=0
 				local bvel=sqrt( (a.gun.vec[1]*bullettype[a.bt].vel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bullettype[a.bt].vel+a.vec[2]*a.vel)^2 )
-					makebullet(a.gun.x,a.gun.y,a.gun.angle+rnd(0.02)-0.01,bvel,1)	
+					makebullet(a.gun.x,a.gun.y+7,a.gun.angle+rnd(0.02)-0.01,bvel,1)	
 				if a.gun.angle<0.25 then
 					a.gun.angle+=0.02
 				end
@@ -362,6 +365,10 @@ function _update()
 	if pause==0 then
 		foreach(actors,controlactor)
 		spawnentities()
+		--todo do this
+		if flr(actors[1].x)>=190*hillspacing then
+--			generatelandscape()
+		end
 		timer+=1
 	else
 		pause-=1
