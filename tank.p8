@@ -257,6 +257,9 @@ function controlactor(a)
 	if a.y<getground(a) then
 		if a.grav then
 			a.y+=gravity*(timer-a.delta)
+			if a.t==enums.tank then
+				a.yoff=-7
+			end
 		end
 	else
 		if a.t==enums.tank then
