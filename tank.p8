@@ -115,6 +115,7 @@ end
 function maketank(x,y,d,vel,bt)
 	local tank=makeactor(1,x,y,d,vel)
 	tank.bt=bt
+	makehitbox(tank,-2,-4,6,4)
 	tank.gun={}
 	tank.gun.angle=0.25
 	tank.gun.len=6
@@ -137,11 +138,7 @@ function makeenemy(x,y,d,vel,bt)
 	local enemy=makeactor(3,x,y,d,vel)
 	enemy.hp=3
 	enemy.grav=false
-	enemy.hitbox={}
-	enemy.hitbox.x=1
-	enemy.hitbox.y=2
-	enemy.hitbox.w=11
-	enemy.hitbox.h=4
+	makehitbox(enemy,1,2,11,4)
 	counters.enemies+=1
 end
 
@@ -171,6 +168,15 @@ function makecrate(x,y,w)
 	local c=makedebris(x,y)
 	c.t=7
 	c.w=w
+	makehitbox(c,-w/2,-w/2,w,w)
+end
+
+function makehitbox(a,x,y,w,h)
+	a.hitbox={}
+	a.hitbox.x=x
+	a.hitbox.y=y
+	a.hitbox.w=w
+	a.hitbox.h=h
 end
 
 function drawactor(t)
@@ -181,9 +187,6 @@ function drawactor(t)
 		line(t.x,t.y,t.tail[1],t.tail[2],7)
 	elseif t.t==enums.enemy then
 		spr(19+flr(cos(timer/20))*2,t.x,t.y,2,1)
-		if debug then
-		rect(t.x+t.hitbox.x,t.y+t.hitbox.y,t.x+t.hitbox.x+t.hitbox.w,t.y+t.hitbox.y+t.hitbox.h,12)
-		end
 	elseif t.t==enums.debris then
 		line(t.x-cos(t.angle)*t.w/2,t.y-sin(t.angle)*t.w/2,t.x+cos(t.angle)*t.w,t.y+sin(t.angle)*t.w,8)
 	elseif t.t==enums.explosion then
@@ -195,6 +198,23 @@ function drawactor(t)
 		line(t.x+cos(t.angle+0.25)*t.w/2,t.y+sin(t.angle+0.25)*t.w/2,t.x+cos(t.angle+0.5)*t.w/2,t.y+sin(t.angle+0.5)*t.w/2,7)
 		line(t.x+cos(t.angle+0.5)*t.w/2,t.y+sin(t.angle+0.5)*t.w/2,t.x+cos(t.angle+0.75)*t.w/2,t.y+sin(t.angle+0.75)*t.w/2,7)
 		line(t.x+cos(t.angle+0.75)*t.w/2,t.y+sin(t.angle+0.75)*t.w/2,t.x+cos(t.angle)*t.w/2,t.y+sin(t.angle)*t.w/2,7)
+	end
+	if debug then
+		if t.hitbox!=nil then
+			rect(t.x+t.hitbox.x,t.y+t.hitbox.y,t.x+t.hitbox.x+t.hitbox.w,t.y+t.hitbox.y+t.hitbox.h,12)
+			pset(t.x,t.y,10)
+		end
+	end
+end
+
+function collision(a,enemy)
+	if  a.x>enemy.x+enemy.hitbox.x
+	and a.x<enemy.x+enemy.hitbox.x+enemy.hitbox.w
+	and a.y>enemy.y+enemy.hitbox.y
+	and a.y<enemy.y+enemy.hitbox.y+enemy.hitbox.h then
+		return true
+	else
+		return false
 	end
 end
 
@@ -225,12 +245,10 @@ function controlactor(a)
 		a.tail={a.x-a.vec[1],a.y-a.vec[2]}
 		for enemy in all(actors) do
 			if enemy.t==enums.enemy then
-			if  a.x>enemy.x+enemy.hitbox.x
-			and a.x<enemy.x+enemy.hitbox.x+enemy.hitbox.w
-			and a.y>enemy.y+enemy.hitbox.y
-			and a.y<enemy.y+enemy.hitbox.y+enemy.hitbox.h then
+			if collision(a,enemy) then
 				damageactor(enemy,1)
 				del(actors,a)
+				makedebris(a.x,a.y)
 			end
 			end
 		end
@@ -268,9 +286,16 @@ function controlactor(a)
 			del(actors,a)
 		end
 	elseif a.t==enums.crate then
-		a.angle+=0.05*a.vel
+		a.angle-=0.01*cos(a.d)*a.vel
 		if timer-a.delta<=1 then
 			a.bounce+=1
+		end
+		if collision(actors[1],a) then
+			sfx(14)
+			for b=1,4 do
+			makedebris(a.x,a.y)
+			end
+			del(actors,a)
 		end
 	end
 
@@ -288,7 +313,7 @@ function controlactor(a)
 		if a.t!=enums.cloud then
 			a.delta=timer
 		end
-		if a.t!=enums.debris then
+		if a.t!=enums.debris and a.t!=enums.crate then
 			a.d=getgrounddir(a)
 		end
 		if a.t==enums.bullet then
@@ -640,7 +665,7 @@ __sfx__
 000100000a7100a7100a7100a7100a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a700
 000100000a7100a7100a7100a7100a7100a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a700
 000100000a7100a7200a7100a7200a7100a7200a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a700
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000400000c640146002e6302e6401a0001a5401a5301a5401a5301a0001a530006001a50000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
