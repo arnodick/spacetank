@@ -23,6 +23,8 @@ function _init()
 	bullettype[1].acc=0.02
 	bullettype[1].snd=3
 	bullettype[1].rec=0.02
+	bullettype[1].dam=1
+	bullettype[1].proj=1
 	
 	bullettype[2]={}
 	bullettype[2].vel=5
@@ -32,6 +34,8 @@ function _init()
 	bullettype[2].acc=0.05
 	bullettype[2].snd=16
 	bullettype[2].rec=0.1
+	bullettype[2].dam=1
+	bullettype[2].proj=1
 	
 	bullettype[3]={}
 	bullettype[3].vel=8
@@ -41,6 +45,19 @@ function _init()
 	bullettype[3].acc=0.1
 	bullettype[3].snd=15
 	bullettype[3].rec=0.03
+	bullettype[3].dam=1
+	bullettype[3].proj=1
+	
+	bullettype[4]={}
+	bullettype[4].vel=10
+	bullettype[4].rof=5
+	bullettype[4].dest=true--{destroy/bounce,momentum}
+	bullettype[4].num=1
+	bullettype[4].acc=0
+	bullettype[4].snd=17
+	bullettype[4].rec=0.1
+	bullettype[4].dam=3
+	bullettype[4].proj=2
 	
 	enums={}
 	enums.tank=1
@@ -203,7 +220,11 @@ function drawactor(t)
 		spr(1,t.x+t.xoff,t.y+t.yoff)
 		line(t.x+1,t.y-4+t.yoff+7,t.gun.x,t.gun.y+7,8)
 	elseif t.t==enums.bullet then
-		line(t.x,t.y,t.tail[1],t.tail[2],7)
+		if bullettype[t.bt].proj==1 then
+			line(t.x,t.y,t.tail[1],t.tail[2],7)
+		elseif bullettype[t.bt].proj==2 then
+			circfill(t.x,t.y,5,7)
+		end
 	elseif t.t==enums.enemy then
 		spr(19+flr(cos(timer/20))*2,t.x,t.y,2,1)
 	elseif t.t==enums.debris then
@@ -265,7 +286,7 @@ function controlactor(a)
 		for enemy in all(actors) do
 			if enemy.t==enums.enemy then
 			if collision(a,enemy) then
-				damageactor(enemy,1)
+				damageactor(enemy,bullettype[a.bt].dam)
 				del(actors,a)
 				makedebris(a.x,a.y)
 			end
@@ -386,7 +407,7 @@ function controlactor(a)
 				a.gun.len=2
 				local bvel=sqrt( (a.gun.vec[1]*bullettype[a.bt].vel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bullettype[a.bt].vel+a.vec[2]*a.vel)^2 )
 					for b=1,bullettype[a.bt].num do
-						makebullet(a.gun.x,a.gun.y+7,a.gun.angle+rnd(bullettype[a.bt].acc)-bullettype[a.bt].acc/2,bvel,1)
+						makebullet(a.gun.x,a.gun.y+7,a.gun.angle+rnd(bullettype[a.bt].acc)-bullettype[a.bt].acc/2,bvel,a.bt)
 					end
 				if a.gun.angle<0.25 then
 					a.gun.angle+=bullettype[a.bt].rec
@@ -423,7 +444,7 @@ function damageactor(a,d)
 			makecloud(a.x+rnd(20)-10,a.y+rnd(20)-10,10)
 		end
 		makeexplosion(a.x,a.y)
-		makecrate(a.x,a.y,12,flr(rnd(3))+1)
+		makecrate(a.x,a.y,12,flr(rnd(4))+1)
 		cam.shake=10
 		del(actors,a)
 		counters.enemies-=1
@@ -690,7 +711,7 @@ __sfx__
 000400000c640146002e6302e6401a0001a5401a5301a5401a5301a0001a530006001a50000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600
 000200000644002050066400205006440000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000300000b670026100b660086600a6500b6500d6500e640106401163012630136201362014610146101561015610146100f61008610066100160000000000000000000000000000000000000000000000000000
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0002000003670027700267002770046700566028660296502a6502963025630246301f6301b6301762014620116200e6100c6100b6100b6100b6100b610096100761005610056100000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
