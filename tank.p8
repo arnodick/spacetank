@@ -13,6 +13,34 @@ function _init()
 	cam.shake=0
 	cam.enemy=0
 	gravity=0.2
+
+	bullettype={}
+	bullettype[1]={}
+	bullettype[1].vel=6
+	bullettype[1].rof=2
+	bullettype[1].dest=true--{destroy/bounce,momentum}
+	bullettype[1].num=1
+	bullettype[1].acc=0.02
+	bullettype[1].snd=3
+	bullettype[1].rec=0.02
+	
+	bullettype[2]={}
+	bullettype[2].vel=5
+	bullettype[2].rof=10
+	bullettype[2].dest=true--{destroy/bounce,momentum}
+	bullettype[2].num=10
+	bullettype[2].acc=0.05
+	bullettype[2].snd=16
+	bullettype[2].rec=0.1
+	
+	bullettype[3]={}
+	bullettype[3].vel=8
+	bullettype[3].rof=1
+	bullettype[3].dest=true--{destroy/bounce,momentum}
+	bullettype[3].num=3
+	bullettype[3].acc=0.1
+	bullettype[3].snd=15
+	bullettype[3].rec=0.03
 	
 	enums={}
 	enums.tank=1
@@ -22,16 +50,6 @@ function _init()
 	enums.explosion=5
 	enums.cloud=6
 	enums.crate=7
-
-	bullettype={}
-	bullettype[1]={}
-	bullettype[1].vel=5
-	bullettype[1].rof=5
-	bullettype[1].dest=false--{destroy/bounce,momentum}
-	bullettype[2]={}
-	bullettype[2].vel=6
-	bullettype[2].rof=2
-	bullettype[2].dest=true--{destroy/bounce,momentum}
 
 	hillheight=60
 	groundheight=10
@@ -68,7 +86,7 @@ function _init()
 		ground[a-1].d=atan2(w,h)
 	end
 	actors={}
-	maketank(100,-50,0,0,2)
+	maketank(100,-50,0,0,1)
 end
 
 function getground(a)
@@ -164,10 +182,11 @@ function makecloud(x,y,r)
 	e.delta=timer
 end
 
-function makecrate(x,y,w)
+function makecrate(x,y,w,bt)
 	local c=makedebris(x,y)
 	c.t=7
 	c.w=w
+	c.bt=bt
 	makehitbox(c,-w/2,-w/2,w,w)
 end
 
@@ -293,8 +312,9 @@ function controlactor(a)
 		if collision(actors[1],a) then
 			sfx(14)
 			for b=1,4 do
-			makedebris(a.x,a.y)
+				makedebris(a.x,a.y)
 			end
+			actors[1].bt=a.bt
 			del(actors,a)
 		end
 	end
@@ -362,12 +382,14 @@ function controlactor(a)
 		a.gun.y=a.y-4+a.gun.vec[2]*a.gun.len+a.yoff
 		if btn(4) then
 			if a.gun.delta==0 then
-				sfx(3)
+				sfx(bullettype[a.bt].snd)
 				a.gun.len=2
 				local bvel=sqrt( (a.gun.vec[1]*bullettype[a.bt].vel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bullettype[a.bt].vel+a.vec[2]*a.vel)^2 )
-					makebullet(a.gun.x,a.gun.y+7,a.gun.angle+rnd(0.02)-0.01,bvel,1)	
+					for b=1,bullettype[a.bt].num do
+						makebullet(a.gun.x,a.gun.y+7,a.gun.angle+rnd(bullettype[a.bt].acc)-bullettype[a.bt].acc/2,bvel,1)
+					end
 				if a.gun.angle<0.25 then
-					a.gun.angle+=0.02
+					a.gun.angle+=bullettype[a.bt].rec
 				end
 				a.gun.delta=bullettype[a.bt].rof
 			else 
@@ -401,7 +423,7 @@ function damageactor(a,d)
 			makecloud(a.x+rnd(20)-10,a.y+rnd(20)-10,10)
 		end
 		makeexplosion(a.x,a.y)
-		makecrate(a.x,a.y,12)
+		makecrate(a.x,a.y,12,flr(rnd(3))+1)
 		cam.shake=10
 		del(actors,a)
 		counters.enemies-=1
@@ -666,8 +688,8 @@ __sfx__
 000100000a7100a7100a7100a7100a7100a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a700
 000100000a7100a7200a7100a7200a7100a7200a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a7000a700
 000400000c640146002e6302e6401a0001a5401a5301a5401a5301a0001a530006001a50000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000200000644002050066400205006440000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000300000b670026100b660086600a6500b6500d6500e640106401163012630136201362014610146101561015610146100f61008610066100160000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
