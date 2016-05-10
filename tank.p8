@@ -104,6 +104,7 @@ function _init()
 	end
 	actors={}
 	maketank(100,-50,0,0,1)
+	makeenemy(120,-50,0,0,6,2,1)
 end
 
 function getground(a)
@@ -169,11 +170,16 @@ function makebullet(x,y,d,vel,bt)
 	bullet.bt=bt
 end
 
-function makeenemy(x,y,d,vel,bt)
+function makeenemy(x,y,d,vel,bt,et,hp)
 	local enemy=makeactor(3,x,y,d,vel)
-	enemy.hp=3
-	enemy.grav=false
-	makehitbox(enemy,1,2,11,4)
+	enemy.et=et
+	enemy.hp=hp
+	if et==1 then
+		enemy.grav=false
+		makehitbox(enemy,1,2,11,4)
+	elseif et==2 then
+		makehitbox(enemy,1,2,5,5)
+	end
 	counters.enemies+=1
 end
 
@@ -235,7 +241,11 @@ function drawactor(t)
 			circ(t.tail[1],t.tail[2],3,8)
 		end
 	elseif t.t==enums.enemy then
-		spr(19+flr(cos(timer/20))*2,t.x,t.y,2,1)
+		if t.et==1 then
+			spr(19+flr(cos(timer/20))*2,t.x,t.y,2,1)
+		elseif t.et==2 then
+			spr(33+(timer/20)%2,t.x,t.y,1,1)
+		end
 	elseif t.t==enums.debris then
 		line(t.x-cos(t.angle)*t.w/2,t.y-sin(t.angle)*t.w/2,t.x+cos(t.angle)*t.w,t.y+sin(t.angle)*t.w,8)
 	elseif t.t==enums.explosion then
@@ -289,7 +299,7 @@ function controlactor(a)
 		a.gun.vec[2]=sin(a.gun.angle)
 		a.gun.x=a.x+1+a.gun.vec[1]*a.gun.len
 		a.gun.y=a.y-4+a.gun.vec[2]*a.gun.len
-		sfx(8+abs(flr(a.vel)),0)
+--		sfx(8+abs(flr(a.vel)),0)
 	elseif a.t==enums.bullet then
 		a.tail={a.x-a.vec[1],a.y-a.vec[2]}
 		if a.bt==4 then
@@ -305,22 +315,26 @@ function controlactor(a)
 			end
 		end
 	elseif a.t==enums.enemy then
-		if a.x<=actors[1].x+50 then
-			a.maxvel=8
-		else
-			a.maxvel=4
-		end
-		if a.vel<=a.maxvel then
-			a.vel+=a.accel
-		else
-			a.vel-=3
-		end
+		if a.et==1 then
+			if a.x<=actors[1].x+50 then
+				a.maxvel=8
+			else
+				a.maxvel=4
+			end
+			if a.vel<=a.maxvel then
+				a.vel+=a.accel
+			else
+				a.vel-=3
+			end
 --		cam.enemy=clamp(-(actors[1].x-a.x)/2,-128,30,true)
-		cam.enemy=-(actors[1].x-a.x)/2
+			cam.enemy=-(actors[1].x-a.x)/2
+		elseif a.et==2 then
+			a.vel=1
+		end
 	elseif a.t==enums.debris then
-		a.angle+=0.1*a.vec[1]
-		if timer-a.delta<=1 then
-			a.bounce+=1
+			a.angle+=0.1*a.vec[1]
+			if timer-a.delta<=1 then
+				a.bounce+=1
 		end
 		if a.bounce==4 then
 			for j=1,4 do
@@ -464,7 +478,7 @@ end
 
 function spawnentities()
 	if counters.enemies==0 then
-		makeenemy(actors[1].x-38,-100+rnd(40),0,1,6)
+		makeenemy(actors[1].x-38,-100+rnd(40),0,1,6,1,3)
 	end
 end
 
