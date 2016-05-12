@@ -204,6 +204,14 @@ function makeexplosion(x,y)
 	for j=1,10 do
 		makecloud(e.x+rnd(20)-10,e.y+rnd(20)-10,10)
 	end
+	for b=1,#actors do
+		local t=actors[b]
+		if t.t==enums.enemy then
+			if distance(t.x,t.y,e.x,e.y)<5 then
+--					damageactor(t,3)
+			end
+		end
+	end
 --	for k,v in pairs(actors) do
 --		if distance(e.x,e.y,v.x,v.y)<5 then
 --			if v.t==enums.enemy then
@@ -476,7 +484,7 @@ end
 function damageactor(a,d)
 	sfx(5)
 	pal(8,7)
-	a.hp-=d
+	a.hp-=d or 3
 	if a.hp<1 then
 		pause=2
 		for b=1,6 do
