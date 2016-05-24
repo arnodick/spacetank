@@ -14,6 +14,7 @@ function _init()
 	cam.enemy=0
 	gravity=0.2
 
+	--machinegun
 	bullettype={}
 	bullettype[1]={}
 	bullettype[1].vel=6
@@ -25,7 +26,8 @@ function _init()
 	bullettype[1].rec=0.02
 	bullettype[1].dam=1
 	bullettype[1].proj=1
-	
+	bullettype[1].heat=5
+	--shotgun
 	bullettype[2]={}
 	bullettype[2].vel=5
 	bullettype[2].rof=10
@@ -36,7 +38,8 @@ function _init()
 	bullettype[2].rec=0.1
 	bullettype[2].dam=1
 	bullettype[2].proj=1
-	
+	bullettype[2].heat=20
+	--minigun
 	bullettype[3]={}
 	bullettype[3].vel=8
 	bullettype[3].rof=1
@@ -47,7 +50,8 @@ function _init()
 	bullettype[3].rec=0.03
 	bullettype[3].dam=1
 	bullettype[3].proj=1
-	
+	bullettype[3].heat=10
+	--cannon
 	bullettype[4]={}
 	bullettype[4].vel=8
 	bullettype[4].rof=5
@@ -58,6 +62,7 @@ function _init()
 	bullettype[4].rec=0.06
 	bullettype[4].dam=3
 	bullettype[4].proj=2
+	bullettype[4].heat=30
 	
 	enums={}
 	enums.tank=1
@@ -67,6 +72,13 @@ function _init()
 	enums.explosion=5
 	enums.cloud=6
 	enums.crate=7
+	
+	hud={}
+	hud.bar={}
+	hud.bar.x=12
+	hud.bar.y=10
+	hud.bar.w=100
+	hud.bar.h=6
 
 	hillheight=60
 	groundheight=10
@@ -132,7 +144,6 @@ function getgrounddir(a)
 	end
 end
 
-
 function makeactor(t,x,y,d,vel)
 	local actor={}
 	actor.t=t
@@ -162,6 +173,7 @@ function maketank(x,y,d,vel,bt)
 	tank.gun.y=0
 	tank.gun.vec={0,0}
 	tank.gun.delta=0
+	tank.gun.heat=0
 	
 	tank.xoff=-3
 	tank.yoff=-7
@@ -296,6 +308,12 @@ function collision(a,enemy)
 end
 
 function controlactor(a)
+	if a.x<=1 then
+ 	a.x=199*hillspacing
+	elseif a.x>199*hillspacing then
+		a.x=0
+	end
+
 	if a.t==enums.tank then
 		if btn(5) then
 			if btn(0) then 
@@ -380,7 +398,12 @@ function controlactor(a)
 			for b=1,4 do
 				makedebris(a.x,a.y)
 			end
+			while a.bt==actors[1].bt do
+				a.bt=flr(rnd(4))+1
+			end
 			actors[1].bt=a.bt
+			actors[1].gun.heat=0
+			actors[1].gun.delta=0
 			del(actors,a)
 		end
 	end
@@ -439,23 +462,21 @@ function controlactor(a)
  	if a.t==enums.enemy then
  		counters.enemies-=1
  	end
- 	del(actors,a)
+ 	if a.t!=enums.tank then
+ 		del(actors,a)
+ 	end
  end
- if a.x<=0 then
- 	a.x=199*hillspacing
-	elseif a.x>199*hillspacing then
-		a.x=0
-	end
  if a.t==enums.tank then
  	if a.gun.len<6 then
  		a.gun.len+=1
  	end
   a.gun.x=a.x+1+a.gun.vec[1]*a.gun.len
 		a.gun.y=a.y-4+a.gun.vec[2]*a.gun.len+a.yoff
-		if btn(4) then
-			if a.gun.delta==0 then
+		if a.gun.delta==0 then
+			if btn(4) then
 				sfx(bullettype[a.bt].snd)
 				a.gun.len=2
+				a.gun.heat+=bullettype[a.bt].heat
 				local bvel=sqrt( (a.gun.vec[1]*bullettype[a.bt].vel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bullettype[a.bt].vel+a.vec[2]*a.vel)^2 )
 					for b=1,bullettype[a.bt].num do
 						makebullet(a.gun.x,a.gun.y+7,a.gun.angle+rnd(bullettype[a.bt].acc)-bullettype[a.bt].acc/2,bvel+rnd(1)-1,a.bt)
@@ -464,9 +485,18 @@ function controlactor(a)
 					a.gun.angle+=bullettype[a.bt].rec
 				end
 				a.gun.delta=bullettype[a.bt].rof
-			else 
-				a.gun.delta-=1
 			end
+		else 
+			a.gun.delta-=1
+		end
+		if a.gun.heat>0 then
+			if a.gun.heat>=100 then
+				a.gun.heat=100
+				a.gun.delta=100
+			end
+			a.gun.heat-=1
+		else
+			a.gun.heat=0
 		end
 		if cam.shake>0 then
 			cam.shake-=1
@@ -491,7 +521,7 @@ function damageactor(a,d)
 			makedebris(a.x,a.y)
 		end
 		makeexplosion(a.x,a.y)
-		makecrate(a.x,a.y,12,flr(rnd(4))+1)
+		makecrate(a.x,a.y,12,flr(rnd(4))+1)--todo: make this random number come from actual amount of bullet types
 		del(actors,a)
 		counters.enemies-=1
 	end
@@ -535,6 +565,10 @@ function _draw()
 	end
 	foreach(actors,drawactor)
 	drawactor(actors[1])--so that tank is drawn over other stuff like bullets
+	if actors[1].gun.heat>0 then
+		rect(cam[1]+hud.bar.x,cam[2]+hud.bar.y,cam[1]+hud.bar.x+hud.bar.w,cam[2]+hud.bar.y+hud.bar.h,8)
+		rectfill(cam[1]+hud.bar.x,cam[2]+hud.bar.y,cam[1]+hud.bar.x+actors[1].gun.heat,cam[2]+hud.bar.y+hud.bar.h,8)
+	end
 	if debug then
 		for a=1,#debug_l do
 			print(debug_l[a],cam[1]+0,cam[2]+(a-1)*6,8)
@@ -579,6 +613,7 @@ function debug_u()
 	debug_l[17]="enemy cam:"..cam.enemy
 	debug_l[18]="camx:"..cam[1]
 	debug_l[19]="camy:"..cam[2]
+	debug_l[20]="heat:"..actors[1].gun.heat
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
