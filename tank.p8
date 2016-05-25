@@ -1,7 +1,7 @@
 pico-8 cartridge // http://www.pico-8.com
 version 7
 __lua__
-debug=false
+debug=true
 debug_l={}
 
 function _init()
@@ -9,6 +9,7 @@ function _init()
 	pause=0
 	counters={}	
 	counters.enemies=0
+	counters.gets=0
 	cam={0,0}
 	cam.shake=0
 	cam.enemy=0
@@ -38,7 +39,7 @@ function _init()
 	bullettype[2].rec=0.1
 	bullettype[2].dam=1
 	bullettype[2].proj=1
-	bullettype[2].heat=20
+	bullettype[2].heat=25
 	--minigun
 	bullettype[3]={}
 	bullettype[3].vel=8
@@ -54,7 +55,7 @@ function _init()
 	--cannon
 	bullettype[4]={}
 	bullettype[4].vel=8
-	bullettype[4].rof=5
+	bullettype[4].rof=8
 	bullettype[4].dest=true--{destroy/bounce,momentum}
 	bullettype[4].num=1
 	bullettype[4].acc=0
@@ -79,43 +80,69 @@ function _init()
 	hud.bar.y=10
 	hud.bar.w=100
 	hud.bar.h=6
+	hud.score={}
+	hud.score.x=12
+	hud.score.y=4
 
-	hillheight=60
-	groundheight=10
-	hillwidth=3--how many hills before go back to ground
-	groundwidth=3--how many low areas before go back to hill
+	--groundheight=10
+	--hillheight=60
+	--groundwidth=3--how many low areas before go back to hill
+	--hillwidth=3--how many hills before go back to ground
 	hillspacing=50
+	generatelandscape(10,60,3,3,hillspacing,true)
+	actors={}
+	maketank(150,-50,0,0,1)
+end
+
+function generatelandscape(gh,hh,gw,hw,hs,first)
 	local los,his=0,0
+	local ys={}
+	--ys[1],ys[2],ys[3]=0,0,0
+	if not first then
+		ys[1],ys[2],ys[3],ys[4],ys[5]=0,ground[197][2],ground[198][2],ground[199][2],ground[200][2]
+	end
 	ground={}
 	ground[1]={0,0}
+	--if not first then
+	--	ground[1]={0,ys[1]}
+	--end
 	ground[1].ratio=1
 	ground[1].d=0
 	for a=2,200 do
 		local h=0
-		h=groundheight
+		--h=groundheight
+		h=gh
 		if his>0 then
-			if his>hillwidth then 
+			--if his>hillwidth then 
+			if his>hw then 
 				his=0
 				los+=1
 			else
 				his+=1
-				h+=hillheight
+				--h+=hillheight
+				h+=hh
 			end
-		elseif los>groundwidth then
+		--elseif los>groundwidth then
+		elseif los>gw then
 				los=0
-				h+=hillheight
+				--h+=hillheight
+				h+=hh
 				his+=1
 		else
 				los+=1
 		end
-		ground[a]={a*hillspacing,-flr(rnd(h))}
+		--ground[a]={a*hillspacing,-flr(rnd(h))}
+		ground[a]={a*hs,-flr(rnd(h))}
+		if not first then
+			if a>1 and a<6 then
+				ground[a][2]=ys[a]
+			end
+		end
 		local w=ground[a][1]-ground[a-1][1]
 		local h=ground[a-1][2]-ground[a][2]
 		ground[a-1].ratio=h/w
 		ground[a-1].d=atan2(w,h)
 	end
-	actors={}
-	maketank(100,-50,0,0,1)
 end
 
 function distance(x1,y1,x2,y2)
@@ -125,12 +152,12 @@ end
 function getground(a)
 	local gx=flr(a.x/hillspacing)
 	if gx!=0 then
-	if ground[gx][1]<a.x and ground[gx+1][1]>a.x then
-		local w=a.x-ground[gx][1]
-		return ground[gx][2]-w*ground[gx].ratio
-	elseif ground[gx][1]==a.x then
-		return ground[gx][2]
-	end
+		if ground[gx][1]<a.x and ground[gx+1][1]>a.x then
+			local w=a.x-ground[gx][1]
+			return ground[gx][2]-w*ground[gx].ratio
+		elseif ground[gx][1]==a.x then
+			return ground[gx][2]
+		end
 	else
 		return 0
 	end
@@ -192,8 +219,11 @@ function makeenemy(x,y,d,vel,bt,et,hp)
 	if et==1 then
 		enemy.grav=false
 		makehitbox(enemy,1,2,11,4)
+		enemy.drop=1
 	elseif et==2 then
-		makehitbox(enemy,1,2,5,5)
+		makehitbox(enemy,0,0,5,8)
+		enemy.deathsnd=18
+		enemy.drop=0.2
 	end
 	counters.enemies+=1
 end
@@ -245,6 +275,7 @@ function makecrate(x,y,w,bt)
 	c.t=7
 	c.w=w
 	c.bt=bt
+	c.vel=rnd(4)+4
 	c.d=rnd(0.15)
 	makehitbox(c,-w/2,-w/2,w,w)
 end
@@ -265,10 +296,8 @@ function drawactor(t)
 		if bullettype[t.bt].proj==1 then
 			line(t.x,t.y,t.tail[1],t.tail[2],7)
 		elseif bullettype[t.bt].proj==2 then
-			circfill(t.x,t.y,4,8)
-			circ(t.x,t.y,4,8)
+			circfill(t.x,t.y,4,7)
 			circfill(t.tail[1],t.tail[2],3,7)
-			circ(t.tail[1],t.tail[2],3,8)
 		end
 	elseif t.t==enums.enemy then
 		if t.et==1 then
@@ -308,10 +337,13 @@ function collision(a,enemy)
 end
 
 function controlactor(a)
-	if a.x<=1 then
- 	a.x=199*hillspacing
-	elseif a.x>199*hillspacing then
-		a.x=0
+	if a.x<=hillspacing*2 then
+ 	a.x=197*hillspacing
+	elseif a.x>198*hillspacing then
+		if a==actors[1] then
+			generatelandscape(10,60,3,3,hillspacing,false)
+		end
+		a.x=hillspacing*3
 	end
 
 	if a.t==enums.tank then
@@ -365,8 +397,10 @@ function controlactor(a)
 --		cam.enemy=clamp(-(actors[1].x-a.x)/2,-128,30,true)
 			cam.enemy=-(actors[1].x-a.x)/2
 		elseif a.et==2 then
-			a.vel=3
-			makecloud(a.x+1+rnd(4)-2,a.y+4+rnd(4)-2,2)
+			a.vel=4
+			if timer%2==0 then
+				makecloud(a.x+1+rnd(4)-2,a.y+4+rnd(4)-2,2)
+			end
 		end
 	elseif a.t==enums.debris then
 			a.angle+=0.1*a.vec[1]
@@ -381,11 +415,11 @@ function controlactor(a)
 			del(actors,a)
 		end
 	elseif a.t==enums.explosion then
-		if timer-a.delta==2 then
+		if timer-a.delta>=2 then
 			del(actors,a)
 		end
 	elseif a.t==enums.cloud then
-		if timer-a.delta==30 then
+		if timer-a.delta>=30 then
 			del(actors,a)
 		end
 	elseif a.t==enums.crate then
@@ -395,6 +429,7 @@ function controlactor(a)
 		end
 		if collision(actors[1],a) then
 			sfx(14)
+			counters.gets+=1
 			for b=1,4 do
 				makedebris(a.x,a.y)
 			end
@@ -517,21 +552,26 @@ function damageactor(a,d)
 	a.hp-=d or 3
 	if a.hp<1 then
 		pause=2
-		for b=1,6 do
-			makedebris(a.x,a.y)
+		if a.et==1 then
+			for b=1,6 do
+				makedebris(a.x,a.y)
+			end
 		end
+		sfx(a.deathsnd)
 		makeexplosion(a.x,a.y)
-		makecrate(a.x,a.y,12,flr(rnd(4))+1)--todo: make this random number come from actual amount of bullet types
+		if rnd(1)<a.drop then
+			makecrate(a.x,a.y,12,flr(rnd(4))+1)
+		end
 		del(actors,a)
 		counters.enemies-=1
 	end
 end
 
 function spawnentities()
-	if counters.enemies==0 then
+	if counters.enemies<3 then
 		if rnd(1)<0.5 then
 		--spawn man
-			makeenemy(actors[1].x+128,-50,0.15,2,6,2,1)		
+			makeenemy(actors[1].x+128,-50,0.15,3,6,2,1)		
 		elseif rnd(1)<0.3 then
 		--spawn ufo
 			makeenemy(actors[1].x-38,-100+rnd(40),0,1,6,1,3)
@@ -543,10 +583,6 @@ function _update()
 	if pause==0 then
 		foreach(actors,controlactor)
 		spawnentities()
-		--todo do this
-		if flr(actors[1].x)>=190*hillspacing then
---			generatelandscape()
-		end
 		timer+=1
 	else
 		pause-=1
@@ -569,6 +605,7 @@ function _draw()
 		rect(cam[1]+hud.bar.x,cam[2]+hud.bar.y,cam[1]+hud.bar.x+hud.bar.w,cam[2]+hud.bar.y+hud.bar.h,8)
 		rectfill(cam[1]+hud.bar.x,cam[2]+hud.bar.y,cam[1]+hud.bar.x+actors[1].gun.heat,cam[2]+hud.bar.y+hud.bar.h,8)
 	end
+	print("score:"..counters.gets,cam[1]+hud.score.x,cam[2]+hud.score.y)
 	if debug then
 		for a=1,#debug_l do
 			print(debug_l[a],cam[1]+0,cam[2]+(a-1)*6,8)
@@ -799,7 +836,7 @@ __sfx__
 000200000644002050066400205006440000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000300000b670026100b660086600a6500b6500d6500e640106401163012630136201362014610146101561015610146100f61008610066100160000000000000000000000000000000000000000000000000000
 0002000003670027700267002770046700566028660296502a6502963025630246301f6301b6301762014620116200e6100c6100b6100b6100b6100b610096100761005610056100000000000000000000000000
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000300002614025140271402c1402b1402c140291402414018140121400d140031400114001100011000010000100001000010000100001000010000100001000010000100001000010000100001000010000100
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
