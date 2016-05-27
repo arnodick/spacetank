@@ -5,17 +5,9 @@ debug=false
 debug_l={}
 
 function _init()
+	state=1
 	timer=0
-	pause=0
-	counters={}	
-	counters.enemies=0
-	counters.gets=0
-	counters.missiles=0
-	cam={0,0}
-	cam.shake=0
-	cam.enemy=0
-	gravity=0.2
-
+	changestate(state)
 	--machinegun
 	bullettype={}
 	bullettype[1]={}
@@ -77,6 +69,9 @@ function _init()
 	enums.ufo=1
 	enums.man=2
 	enums.missile=3
+	enums.title=1
+	enums.options=2
+	enums.game=3
 	
 	hud={}
 	hud.bar={}
@@ -99,7 +94,7 @@ function _init()
 	hillspacing=50
 	generatelandscape(10,60,3,3,hillspacing,true)
 	actors={}
-	maketank(150,-50,0,0,1)
+	player=maketank(150,-50,0,0,1)
 end
 
 function generatelandscape(gh,hh,gw,hw,hs,first)
@@ -202,6 +197,7 @@ function maketank(x,y,d,vel,bt)
 	tank.bt=bt
 	tank.hp=3
 	tank.hit=0
+	tank.drop=1
 	makehitbox(tank,-4,-10,8,10)
 	tank.gun={}
 	tank.gun.angle=0.25
@@ -214,6 +210,7 @@ function maketank(x,y,d,vel,bt)
 	
 	tank.xoff=-3
 	tank.yoff=-7
+	return tank
 end
 
 function makebullet(x,y,d,vel,bt)
@@ -358,7 +355,7 @@ function controlactor(a)
 	if a.x<=hillspacing*2 then
  	a.x=197*hillspacing
 	elseif a.x>198*hillspacing then
-		if a==actors[1] then
+		if a==player then
 			generatelandscape(20-rnd(15),100-rnd(95),3+rnd(3),3+rnd(3),hillspacing,false)
 		end
 		a.x=hillspacing*3
@@ -406,7 +403,7 @@ function controlactor(a)
 		end
 	elseif a.t==enums.enemy then
 		if a.et==enums.ufo then
-			if a.x<=actors[1].x+50 then
+			if a.x<=player.x+50 then
 				a.maxvel=8
 			else
 				a.maxvel=4
@@ -417,13 +414,11 @@ function controlactor(a)
 				a.vel-=3
 			end
 			if counters.missiles==0 then
-				if flr(a.x)==flr(actors[1].x)+30 then
+				if flr(a.x)==flr(player.x)+30 then
 					sfx(20)
 					makeenemy(a.x,a.y,0.9,4,1,3,1)
 				end
 			end
---		cam.enemy=clamp(-(actors[1].x-a.x)/2,-128,30,true)
-			cam.enemy=-(actors[1].x-a.x)/2
 		elseif a.et==enums.man then
 			a.vel=4
 			if timer%2==0 then
@@ -432,11 +427,9 @@ function controlactor(a)
 		elseif a.et==enums.missile then
 			--missile stuff
 			a.vel=3
-			if collision(a,actors[1]) then
-				actors[1].hit=20
-				if actors[1].hp>1 then
-					damageactor(actors[1],1)
-				end
+			if collision(a,player) then
+				player.hit=20
+				damageactor(player,3)
 				damageactor(a,1)
 			end
 			if a.y>=getgroundheight(a.x) then
@@ -468,18 +461,18 @@ function controlactor(a)
 		if timer-a.delta<=1 then
 			a.bounce+=1
 		end
-		if collision(actors[1],a) then
+		if collision(player,a) then
 			sfx(14)
 			counters.gets+=1
 			for b=1,4 do
 				makedebris(a.x,a.y)
 			end
-			while a.bt==actors[1].bt do
+			while a.bt==player.bt do
 				a.bt=flr(rnd(4))+1
 			end
-			actors[1].bt=a.bt
-			actors[1].gun.heat=0
-			actors[1].gun.delta=0
+			player.bt=a.bt
+			player.gun.heat=0
+			player.gun.delta=0
 			del(actors,a)
 		end
 	end
@@ -585,10 +578,9 @@ function controlactor(a)
 		if cam.shake>0 then
 			cam.shake-=1
 		end
-		cam[1]=a.x+8*actors[1].vel+rnd(cam.shake)*2-56--+cam.enemy
---			cam[1]=clamp(a.x+8*actors[1].vel+rnd(cam.shake)*2-56+cam.enemy,actors[1].x-30,128,true)
+		cam[1]=a.x+8*player.vel+rnd(cam.shake)*2-56
 		if a.y<-60 then
-			cam[2]=-118+a.y+60--a.y-80
+			cam[2]=-118+a.y+60
 		else
 			cam[2]=-118
 		end
@@ -614,6 +606,8 @@ function damageactor(a,d)
 			if	counters.missiles<0 then
 				counters.missiles=0
 			end
+		elseif a.t==enums.tank then
+			sfx(23)
 		end
 		sfx(a.deathsnd)
 		makeexplosion(a.x,a.y)
@@ -629,52 +623,72 @@ function spawnentities()
 	if counters.enemies<3 then
 		if rnd(1)<0.5 then
 		--spawn man
-			makeenemy(actors[1].x+160,-50,0.15,3,6,2,1)		
+			makeenemy(player.x+160,-50,0.15,3,6,2,1)		
 		elseif rnd(1)<0.3 then
 		--spawn ufo
-			makeenemy(actors[1].x-38,-100+rnd(40),0,1,6,1,3)
+			makeenemy(player.x-38,-100+rnd(40),0,1,6,1,3)
 		end
 	end
 end
 
 function _update()
-	if pause==0 then
-		foreach(actors,controlactor)
-		spawnentities()
-		timer+=1
-	else
-		pause-=1
+	if state==enums.title then
+		--title menu logic here!
+		if btnp(4) then
+			changestate(enums.game)
+		elseif btnp(5) then
+			changestate(enums.options)
+		end
+	elseif state==enums.options then
+		if btnp(4) or btnp(5) then
+			changestate(enums.title)
+		end
+	elseif state==enums.game then
+		if pause==0 then
+			foreach(actors,controlactor)
+			spawnentities()
+			timer+=1
+		else
+			pause-=1
+		end
+		debug_u()
 	end
-	
-	debug_u()
 end
 
 function _draw()
 	cls()
 	camera(cam[1],cam[2])
-	pal(7,flr(rnd(15))+1)
-	if actors[1].hit>0 then
-		pal(8,flr(rnd(15))+1)
-	end
-	for a=1,#ground-1 do
-		line(ground[a][1],ground[a][2],ground[a+1][1],ground[a+1][2],8)
-		line(ground[a][1]+8,ground[a][2]+8,ground[a+1][1]+8,ground[a+1][2]+8,7)
-	end
-	spr(24,200,getgroundheight(200)-23,7,3)
-	foreach(actors,drawactor)
-	drawactor(actors[1])--so that tank is drawn over other stuff like bullets
-	if actors[1].gun.heat>0 then
-		rectfill(cam[1]+hud.bar.x,cam[2]+hud.bar.y,cam[1]+hud.bar.x+actors[1].gun.heat,cam[2]+hud.bar.y+hud.bar.h,hud.bar.c)
-		rect(cam[1]+hud.bar.x,cam[2]+hud.bar.y,cam[1]+hud.bar.x+hud.bar.w,cam[2]+hud.bar.y+hud.bar.h,8)
-	end
-	print("score:"..counters.gets,cam[1]+hud.score.x,cam[2]+hud.score.y)
-	print("hp:"..actors[1].hp,cam[1]+hud.hp.x,cam[2]+hud.hp.y)
-	if debug then
-		for a=1,#debug_l do
-			print(debug_l[a],cam[1]+0,cam[2]+(a-1)*6,8)
+	if state==enums.title then
+		print("spacetank 9000",50,50,8)
+		print("button 1: start",50,60,8)
+		print("button 2: options",50,70,8)
+	elseif state==enums.options then
+		print("options",50,50,8)
+	elseif state==enums.game then
+		pal(7,flr(rnd(15))+1)
+		if player.hit>0 then
+			pal(8,flr(rnd(15))+1)
 		end
+		for a=1,#ground-1 do
+			line(ground[a][1],ground[a][2],ground[a+1][1],ground[a+1][2],8)
+			line(ground[a][1]+8,ground[a][2]+8,ground[a+1][1]+8,ground[a+1][2]+8,7)
+		end
+		spr(24,200,getgroundheight(200)-23,7,3)
+		foreach(actors,drawactor)
+	--	drawactor(player)--so that tank is drawn over other stuff like bullets
+		if player.gun.heat>0 then
+			rectfill(cam[1]+hud.bar.x,cam[2]+hud.bar.y,cam[1]+hud.bar.x+player.gun.heat,cam[2]+hud.bar.y+hud.bar.h,hud.bar.c)
+			rect(cam[1]+hud.bar.x,cam[2]+hud.bar.y,cam[1]+hud.bar.x+hud.bar.w,cam[2]+hud.bar.y+hud.bar.h,8)
+		end
+		print("score:"..counters.gets,cam[1]+hud.score.x,cam[2]+hud.score.y,8)
+		print("hp:"..player.hp,cam[1]+hud.hp.x,cam[2]+hud.hp.y,8)
+		if debug then
+			for a=1,#debug_l do
+				print(debug_l[a],cam[1]+0,cam[2]+(a-1)*6,8)
+			end
+		end
+		pal()
 	end
-	pal()
 end
 
 function clamp(v,mi,ma,h)
@@ -690,30 +704,46 @@ function clamp(v,mi,ma,h)
 	return v
 end
 
+function changestate(s)
+	state=s
+	timer=0
+	cam={0,0}
+	if state==3 then
+		pause=0
+		cam={0,0}
+		cam.shake=0
+		counters={}	
+		counters.enemies=0
+		counters.gets=0
+		counters.missiles=0
+		gravity=0.2
+	end
+end
+
 function debug_u()
 	debug_l[1]=timer
 	debug_l[2]="mem="..stat(0)
 	debug_l[3]="cpu="..stat(1)
 	debug_l[4]="actors:"..#actors
-	debug_l[5]="tank x:"..actors[1].x
-	debug_l[6]="tank y:"..actors[1].y
-	debug_l[7]="tank vel:"..actors[1].vel
-	debug_l[8]="gun x:"..actors[1].gun.x
-	debug_l[9]="gun y:"..actors[1].gun.y
-	debug_l[10]="gun d:"..actors[1].gun.angle
-	debug_l[11]="gun vx:"..actors[1].gun.vec[1]
-	debug_l[12]="gun vy:"..actors[1].gun.vec[2]	
-	debug_l[13]="ratio:"..getgroundheight(actors[1].x)
-	if actors[1].d!=nil then
+	debug_l[5]="tank x:"..player.x
+	debug_l[6]="tank y:"..player.y
+	debug_l[7]="tank vel:"..player.vel
+	debug_l[8]="gun x:"..player.gun.x
+	debug_l[9]="gun y:"..player.gun.y
+	debug_l[10]="gun d:"..player.gun.angle
+	debug_l[11]="gun vx:"..player.gun.vec[1]
+	debug_l[12]="gun vy:"..player.gun.vec[2]	
+	debug_l[13]="ratio:"..getgroundheight(player.x)
+	if player.d!=nil then
 --	debug_l[14]="tank d:"..actors[1].d
 	end
-	debug_l[14]="tank vx:"..actors[1].vec[1]
-	debug_l[15]="tank vy:"..actors[1].vec[2]
+	debug_l[14]="tank vx:"..player.vec[1]
+	debug_l[15]="tank vy:"..player.vec[2]
 	debug_l[16]="enemy cnt:"..counters.enemies
 	debug_l[17]="missiles cnt:"..counters.missiles
 	debug_l[18]="camx:"..cam[1]
 	debug_l[19]="camy:"..cam[2]
-	debug_l[20]="heat:"..actors[1].gun.heat
+	debug_l[20]="heat:"..player.gun.heat
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -899,12 +929,12 @@ __sfx__
 000200000644002050066400205006440000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000300000b670026100b660086600a6500b6500d6500e640106401163012630136201362014610146101561015610146100f61008610066100160000000000000000000000000000000000000000000000000000
 0002000003670027700267002770046700566028660296502a6502963025630246301f6301b6301762014620116200e6100c6100b6100b6100b6100b610096100761005610056100000000000000000000000000
-000300002614025140271402c1402b1402c140291402414018140121400d140031400114001100011000010000100001000010000100001000010000100001000010000100001000010000100001000010000100
+000300002613025130271302c1302b1302c130291302413018130121300d130031300113001100011000010000100001000010000100001000010000100001000010000100001000010000100001000010000100
 000400001527010640112700c6400f2700d2500a6400c27009650086400a270082500464005270026400227002640016400160002600016000160000000000000000000000000000000000000000000000000000
 000300003d7403b740387403674034740317402e7402c7402a7402874025740227401f7401d7401c740197401774013740117400e7400c7400974008740067400574003740000000000000000000000000000000
 000500002844028040284402804028440280402844028040284402804028440280402844000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+001000002437024370243702437021370213702137021370003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300
+001400001e5401e5401e5401e5401e5401d5401d5401d5401d5401d5401c5401c5401c5401c5401c5401b5401b5401b5401b5401b540195401a540195401a540195401a540195401a54019540195401954019540
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
