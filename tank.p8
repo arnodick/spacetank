@@ -201,7 +201,8 @@ function maketank(x,y,d,vel,bt)
 	local tank=makeactor(1,x,y,d,vel)
 	tank.bt=bt
 	tank.hp=3
-	makehitbox(tank,-2,-8,6,8)
+	tank.hit=0
+	makehitbox(tank,-4,-10,8,10)
 	tank.gun={}
 	tank.gun.angle=0.25
 	tank.gun.len=6
@@ -227,15 +228,15 @@ function makeenemy(x,y,d,vel,bt,et,hp)
 	enemy.hp=hp
 	if et==enums.ufo then
 		enemy.grav=false
-		makehitbox(enemy,1,2,11,4)
+		makehitbox(enemy,1,2-4,11,8)
 		enemy.drop=1
 	elseif et==enums.man then
-		makehitbox(enemy,0,0,5,8)
+		makehitbox(enemy,0,0,8,8)
 		enemy.deathsnd=18
 		enemy.drop=0.2
 	elseif et==enums.missile then
 		enemy.grav=false
-		makehitbox(enemy,0,0,5,8)
+		makehitbox(enemy,0-4,0-4,5,8)
 		enemy.drop=0.5
 		counters.missiles+=1
 	end
@@ -291,7 +292,8 @@ function makecrate(x,y,w,bt)
 	c.bt=bt
 	c.vel=rnd(4)+4
 	c.d=rnd(0.15)
-	makehitbox(c,-w/2,-w/2,w,w)
+	c.decel=0.03
+	makehitbox(c,-w/2-4,-w/2-4,w+4,w+4)
 end
 
 function makehitbox(a,x,y,w,h)
@@ -319,7 +321,7 @@ function drawactor(t)
 		elseif t.et==enums.man then
 			spr(33+(timer/20)%2,t.x,t.y,1,1,t.vel or false)
 		elseif t.et==enums.missile then
-			spr(50,t.x,t.y,1,1)
+			spr(50,t.x-4,t.y-4,1,1)
 		end
 	elseif t.t==enums.debris then
 		line(t.x-cos(t.angle)*t.w/2,t.y-sin(t.angle)*t.w/2,t.x+cos(t.angle)*t.w,t.y+sin(t.angle)*t.w,8)
@@ -383,6 +385,10 @@ function controlactor(a)
 		a.gun.vec[2]=sin(a.gun.angle)
 		a.gun.x=a.x+1+a.gun.vec[1]*a.gun.len
 		a.gun.y=a.y-4+a.gun.vec[2]*a.gun.len
+		
+		if a.hit>0 then
+			a.hit-=1
+		end
 --		sfx(8+abs(flr(a.vel)),0)
 	elseif a.t==enums.bullet then
 		a.tail={a.x-a.vec[1],a.y-a.vec[2]}
@@ -427,7 +433,10 @@ function controlactor(a)
 			--missile stuff
 			a.vel=3
 			if collision(a,actors[1]) then
-				damageactor(actors[1],1)
+				actors[1].hit=20
+				if actors[1].hp>1 then
+					damageactor(actors[1],1)
+				end
 				damageactor(a,1)
 			end
 			if a.y>=getgroundheight(a.x) then
@@ -602,6 +611,9 @@ function damageactor(a,d)
 			end
 		elseif a.et==enums.missile then
 			counters.missiles-=1
+			if	counters.missiles<0 then
+				counters.missiles=0
+			end
 		end
 		sfx(a.deathsnd)
 		makeexplosion(a.x,a.y)
@@ -641,6 +653,9 @@ function _draw()
 	cls()
 	camera(cam[1],cam[2])
 	pal(7,flr(rnd(15))+1)
+	if actors[1].hit>0 then
+		pal(8,flr(rnd(15))+1)
+	end
 	for a=1,#ground-1 do
 		line(ground[a][1],ground[a][2],ground[a+1][1],ground[a+1][2],8)
 		line(ground[a][1]+8,ground[a][2]+8,ground[a+1][1]+8,ground[a+1][2]+8,7)
