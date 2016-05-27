@@ -10,6 +10,7 @@ function _init()
 	counters={}	
 	counters.enemies=0
 	counters.gets=0
+	counters.missiles=0
 	cam={0,0}
 	cam.shake=0
 	cam.enemy=0
@@ -39,14 +40,14 @@ function _init()
 	bullettype[2].rec=0.1
 	bullettype[2].dam=1
 	bullettype[2].proj=1
-	bullettype[2].heat=25
+	bullettype[2].heat=30
 	--minigun
 	bullettype[3]={}
 	bullettype[3].vel=8
 	bullettype[3].rof=1
 	bullettype[3].dest=true--{destroy/bounce,momentum}
 	bullettype[3].num=3
-	bullettype[3].acc=0.08
+	bullettype[3].acc=0.045
 	bullettype[3].snd=15
 	bullettype[3].rec=0.03
 	bullettype[3].dam=1
@@ -73,6 +74,9 @@ function _init()
 	enums.explosion=5
 	enums.cloud=6
 	enums.crate=7
+	enums.ufo=1
+	enums.man=2
+	enums.missile=3
 	
 	hud={}
 	hud.bar={}
@@ -80,9 +84,13 @@ function _init()
 	hud.bar.y=10
 	hud.bar.w=100
 	hud.bar.h=6
+	hud.bar.c=8
 	hud.score={}
 	hud.score.x=12
 	hud.score.y=4
+	hud.hp={}
+	hud.hp.x=100
+	hud.hp.y=4
 
 	--groundheight=10
 	--hillheight=60
@@ -149,14 +157,13 @@ function distance(x1,y1,x2,y2)
 	return sqrt((x2-x1)^2+(y2-y1)^2)
 end
 
-function getground(a) --todo: call this groundheight?
-	--also make it less broad. just do x position
-	local gx=flr(a.x/hillspacing)
+function getgroundheight(x)
+	local gx=flr(x/hillspacing)
 	if gx!=0 then
-		if ground[gx][1]<a.x and ground[gx+1][1]>a.x then
-			local w=a.x-ground[gx][1]
+		if ground[gx][1]<x and ground[gx+1][1]>x then
+			local w=x-ground[gx][1]
 			return ground[gx][2]-w*ground[gx].ratio
-		elseif ground[gx][1]==a.x then
+		elseif ground[gx][1]==x then
 			return ground[gx][2]
 		end
 	else
@@ -193,7 +200,8 @@ end
 function maketank(x,y,d,vel,bt)
 	local tank=makeactor(1,x,y,d,vel)
 	tank.bt=bt
-	makehitbox(tank,-2,-4,6,4)
+	tank.hp=3
+	makehitbox(tank,-2,-8,6,8)
 	tank.gun={}
 	tank.gun.angle=0.25
 	tank.gun.len=6
@@ -217,14 +225,19 @@ function makeenemy(x,y,d,vel,bt,et,hp)
 	local enemy=makeactor(3,x,y,d,vel)
 	enemy.et=et
 	enemy.hp=hp
-	if et==1 then
+	if et==enums.ufo then
 		enemy.grav=false
 		makehitbox(enemy,1,2,11,4)
 		enemy.drop=1
-	elseif et==2 then
+	elseif et==enums.man then
 		makehitbox(enemy,0,0,5,8)
 		enemy.deathsnd=18
 		enemy.drop=0.2
+	elseif et==enums.missile then
+		enemy.grav=false
+		makehitbox(enemy,0,0,5,8)
+		enemy.drop=0.5
+		counters.missiles+=1
 	end
 	counters.enemies+=1
 end
@@ -301,10 +314,12 @@ function drawactor(t)
 			circfill(t.tail[1],t.tail[2],3,7)
 		end
 	elseif t.t==enums.enemy then
-		if t.et==1 then
+		if t.et==enums.ufo then
 			spr(19+flr(cos(timer/20))*2,t.x,t.y,2,1)
-		elseif t.et==2 then
+		elseif t.et==enums.man then
 			spr(33+(timer/20)%2,t.x,t.y,1,1,t.vel or false)
+		elseif t.et==enums.missile then
+			spr(50,t.x,t.y,1,1)
 		end
 	elseif t.t==enums.debris then
 		line(t.x-cos(t.angle)*t.w/2,t.y-sin(t.angle)*t.w/2,t.x+cos(t.angle)*t.w,t.y+sin(t.angle)*t.w,8)
@@ -384,7 +399,7 @@ function controlactor(a)
 			end
 		end
 	elseif a.t==enums.enemy then
-		if a.et==1 then
+		if a.et==enums.ufo then
 			if a.x<=actors[1].x+50 then
 				a.maxvel=8
 			else
@@ -395,12 +410,28 @@ function controlactor(a)
 			else
 				a.vel-=3
 			end
+			if counters.missiles==0 then
+				if flr(a.x)==flr(actors[1].x)+30 then
+					sfx(20)
+					makeenemy(a.x,a.y,0.9,4,1,3,1)
+				end
+			end
 --		cam.enemy=clamp(-(actors[1].x-a.x)/2,-128,30,true)
 			cam.enemy=-(actors[1].x-a.x)/2
-		elseif a.et==2 then
+		elseif a.et==enums.man then
 			a.vel=4
 			if timer%2==0 then
 				makecloud(a.x+1+rnd(4)-2,a.y+4+rnd(4)-2,2)
+			end
+		elseif a.et==enums.missile then
+			--missile stuff
+			a.vel=3
+			if collision(a,actors[1]) then
+				damageactor(actors[1],1)
+				damageactor(a,1)
+			end
+			if a.y>=getgroundheight(a.x) then
+				damageactor(a,1)
 			end
 		end
 	elseif a.t==enums.debris then
@@ -444,7 +475,7 @@ function controlactor(a)
 		end
 	end
 
-	if a.y<getground(a) then
+	if a.y<getgroundheight(a.x) then
 		if a.grav then
 			a.y+=gravity*(timer-a.delta)
 			if a.t==enums.tank then
@@ -476,7 +507,7 @@ function controlactor(a)
 				del(actors,a)--delete for bounce!
 			end
 		end
-		a.y=getground(a)+1
+		a.y=getgroundheight(a.x)+1
 	end
 	
 	a.vec[1]=cos(a.d)
@@ -509,6 +540,7 @@ function controlactor(a)
   a.gun.x=a.x+1+a.gun.vec[1]*a.gun.len
 		a.gun.y=a.y-4+a.gun.vec[2]*a.gun.len+a.yoff
 		if a.gun.delta==0 then
+			hud.bar.c=8
 			if btn(4) then
 				sfx(bullettype[a.bt].snd)
 				a.gun.len=2
@@ -524,11 +556,18 @@ function controlactor(a)
 			end
 		else 
 			a.gun.delta-=1
+			if a.gun.delta>20 then
+				if timer%3==0 then
+					makecloud(a.gun.x,a.gun.y+6,4)
+					hud.bar.c=7
+				end
+			end
 		end
 		if a.gun.heat>0 then
 			if a.gun.heat>=100 then
 				a.gun.heat=100
 				a.gun.delta=100
+				sfx(19)
 			end
 			a.gun.heat-=1
 		else
@@ -548,15 +587,21 @@ function controlactor(a)
 end
 
 function damageactor(a,d)
-	sfx(5)
+	if a.t==enums.tank then
+		sfx(21)
+	else
+		sfx(5)--todo: just implement a damage noise for each actor
+	end
 	pal(8,7)
 	a.hp-=d or 3
 	if a.hp<1 then
 		pause=2
-		if a.et==1 then
+		if a.et==enums.ufo then
 			for b=1,6 do
 				makedebris(a.x,a.y)
 			end
+		elseif a.et==enums.missile then
+			counters.missiles-=1
 		end
 		sfx(a.deathsnd)
 		makeexplosion(a.x,a.y)
@@ -596,23 +641,19 @@ function _draw()
 	cls()
 	camera(cam[1],cam[2])
 	pal(7,flr(rnd(15))+1)
-	local z={} z.x=200 --dont do this! it is dumb. just fix getground
 	for a=1,#ground-1 do
 		line(ground[a][1],ground[a][2],ground[a+1][1],ground[a+1][2],8)
 		line(ground[a][1]+8,ground[a][2]+8,ground[a+1][1]+8,ground[a+1][2]+8,7)
 	end
-	spr(24,200,getground(z)-23,7,3)
-	z.x=300 --dont do this! it is dumb. just fix getground
-	spr(24,300,getground(z)-23,7,3)
-	z.x=400 --dont do this! it is dumb. just fix getground
-	spr(24,400,getground(z)-23,7,3)	
+	spr(24,200,getgroundheight(200)-23,7,3)
 	foreach(actors,drawactor)
 	drawactor(actors[1])--so that tank is drawn over other stuff like bullets
 	if actors[1].gun.heat>0 then
+		rectfill(cam[1]+hud.bar.x,cam[2]+hud.bar.y,cam[1]+hud.bar.x+actors[1].gun.heat,cam[2]+hud.bar.y+hud.bar.h,hud.bar.c)
 		rect(cam[1]+hud.bar.x,cam[2]+hud.bar.y,cam[1]+hud.bar.x+hud.bar.w,cam[2]+hud.bar.y+hud.bar.h,8)
-		rectfill(cam[1]+hud.bar.x,cam[2]+hud.bar.y,cam[1]+hud.bar.x+actors[1].gun.heat,cam[2]+hud.bar.y+hud.bar.h,8)
 	end
 	print("score:"..counters.gets,cam[1]+hud.score.x,cam[2]+hud.score.y)
+	print("hp:"..actors[1].hp,cam[1]+hud.hp.x,cam[2]+hud.hp.y)
 	if debug then
 		for a=1,#debug_l do
 			print(debug_l[a],cam[1]+0,cam[2]+(a-1)*6,8)
@@ -647,14 +688,14 @@ function debug_u()
 	debug_l[10]="gun d:"..actors[1].gun.angle
 	debug_l[11]="gun vx:"..actors[1].gun.vec[1]
 	debug_l[12]="gun vy:"..actors[1].gun.vec[2]	
-	debug_l[13]="ratio:"..getground(actors[1])
+	debug_l[13]="ratio:"..getgroundheight(actors[1].x)
 	if actors[1].d!=nil then
 --	debug_l[14]="tank d:"..actors[1].d
 	end
 	debug_l[14]="tank vx:"..actors[1].vec[1]
 	debug_l[15]="tank vy:"..actors[1].vec[2]
 	debug_l[16]="enemy cnt:"..counters.enemies
-	debug_l[17]="enemy cam:"..cam.enemy
+	debug_l[17]="missiles cnt:"..counters.missiles
 	debug_l[18]="camx:"..cam[1]
 	debug_l[19]="camy:"..cam[2]
 	debug_l[20]="heat:"..actors[1].gun.heat
@@ -684,14 +725,14 @@ __gfx__
 00000000000000000008080000000000000000000000000000000000000000000000000050050500505000050050500000000000000077777700000000000000
 00000000000808000008008000000000000000000000000000000000000000000000000050050050505000500500500000000000000777777770000000000000
 00000000000808000000000000000000000000000000000000000000000000000000000050055555505000005000500000000000000777777770000000000000
-00000000000000000000000000000000000000000000000000000000000000000000005050000000005050050050500000000000000777777770000000000000
-00000000888888800000000000000000000000000000000000000000000000000000050500005550000505000550000000000000000777777770000000000000
-00000000800080080000000000000000000000000000000000000000000000000000050000000000000005005050050505050505000077777700000000000000
-00000000800008080000000000000000000000000000000000000000000000000000050000057075000005005000000000000000000007777000000000000000
-00000000888888800000000000000000000000000000000000000000000000000000050000050705000005005000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000050000057075000005000005505505505500000000000000000000000000
-00000000808008080000000000000000000000000000000000000000000000000000050000050005000005000000000000000000000000000000000000000000
-00000000080000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000007000000000000000000000000000000000000000000000000005050000000005050050050500000000000000777777770000000000000
+00000000888888800077700000000000000000000000000000000000000000000000050500005550000505000550000000000000000777777770000000000000
+00000000800080080807080000000000000000000000000000000000000000000000050000000000000005005050050505050505000077777700000000000000
+00000000800008080080800000000000000000000000000000000000000000000000050000057075000005005000000000000000000007777000000000000000
+00000000888888800080800000000000000000000000000000000000000000000000050000050705000005005000000000000000000000000000000000000000
+00000000000000000080800000000000000000000000000000000000000000000000050000057075000005000005505505505500000000000000000000000000
+00000000808008080008000000000000000000000000000000000000000000000000050000050005000005000000000000000000000000000000000000000000
+00000000080000800008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -844,9 +885,9 @@ __sfx__
 000300000b670026100b660086600a6500b6500d6500e640106401163012630136201362014610146101561015610146100f61008610066100160000000000000000000000000000000000000000000000000000
 0002000003670027700267002770046700566028660296502a6502963025630246301f6301b6301762014620116200e6100c6100b6100b6100b6100b610096100761005610056100000000000000000000000000
 000300002614025140271402c1402b1402c140291402414018140121400d140031400114001100011000010000100001000010000100001000010000100001000010000100001000010000100001000010000100
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000400001527010640112700c6400f2700d2500a6400c27009650086400a270082500464005270026400227002640016400160002600016000160000000000000000000000000000000000000000000000000000
+000300003d7403b740387403674034740317402e7402c7402a7402874025740227401f7401d7401c740197401774013740117400e7400c7400974008740067400574003740000000000000000000000000000000
+000500002844028040284402804028440280402844028040284402804028440280402844000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
