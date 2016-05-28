@@ -57,6 +57,18 @@ function _init()
 	bullettype[4].dam=3
 	bullettype[4].proj=2
 	bullettype[4].heat=30
+	--bouncy ball
+	bullettype[5]={}
+	bullettype[5].vel=4
+	bullettype[5].rof=16
+	bullettype[5].dest=false--{destroy/bounce,momentum}
+	bullettype[5].num=1
+	bullettype[5].acc=0
+	bullettype[5].snd=24
+	bullettype[5].rec=0
+	bullettype[5].dam=3
+	bullettype[5].proj=3
+	bullettype[5].heat=60
 	
 	enums={}
 	enums.tank=1
@@ -95,6 +107,7 @@ function _init()
 	generatelandscape(10,60,3,3,hillspacing,true)
 	actors={}
 	player=maketank(150,-50,0,0,1)
+	--player=maketank(190*hillspacing,-50,0,0,1)
 end
 
 function generatelandscape(gh,hh,gw,hw,hs,first)
@@ -149,12 +162,15 @@ function generatelandscape(gh,hh,gw,hw,hs,first)
 end
 
 function distance(x1,y1,x2,y2)
-	return sqrt((x2-x1)^2+(y2-y1)^2)
+	local a=(x2-x1)/10  local b=(y2-y1)/10
+	--return sqrt((x2-x1)^2+(y2-y1)^2)
+--	return sqrt(a*a+b*b)
+	return (a*a+b*b)
 end
 
 function getgroundheight(x)
 	local gx=flr(x/hillspacing)
-	if gx>0 then
+	if gx>1 and gx<200 then
 		if ground[gx][1]<x and ground[gx+1][1]>x then
 			local w=x-ground[gx][1]
 			return ground[gx][2]-w*ground[gx].ratio
@@ -218,6 +234,9 @@ function makebullet(x,y,d,vel,bt)
 	local bullet=makeactor(2,x,y,d,vel)
 	bullet.tail={0,0}
 	bullet.bt=bt
+	if bullet.bt==5 then
+		bullet.decel=0
+	end
 end
 
 function makeenemy(x,y,d,vel,bt,et,hp)
@@ -258,14 +277,6 @@ function makeexplosion(x,y)
 	cam.shake=10
 	for j=1,10 do
 		makecloud(e.x+rnd(20)-10,e.y+rnd(20)-10,10)
-	end
-	for b=1,#actors do
-		local t=actors[b]
-		if t.t==enums.enemy then
-			if distance(t.x,t.y,e.x,e.y)<5 then
---					damageactor(t,3)
-			end
-		end
 	end
 --	for k,v in pairs(actors) do
 --		if distance(e.x,e.y,v.x,v.y)<5 then
@@ -314,6 +325,9 @@ function drawactor(t)
 		elseif bullettype[t.bt].proj==2 then
 			circfill(t.x,t.y,4,7)
 			circfill(t.tail[1],t.tail[2],3,7)
+		elseif bullettype[t.bt].proj==3 then
+			circ(t.tail[1],t.tail[2],6+(cos(timer/20))*2,7)
+			circ(t.tail[1],t.tail[2],3+(sin(timer/20))*2,7)
 		end
 	elseif t.t==enums.enemy then
 		if t.et==enums.ufo then
@@ -355,15 +369,6 @@ function collision(a,enemy)
 end
 
 function controlactor(a)
---	if a.x<=hillspacing*2 then
--- 	a.x=197*hillspacing
---	elseif a.x>198*hillspacing then
---		if a==player then
---			generatelandscape(20-rnd(15),100-rnd(95),3+rnd(3),3+rnd(3),hillspacing,false)
---		end
---		a.x=hillspacing*3
---	end
-
 	if a.t==enums.tank then
 		if a.x>198*hillspacing then
 			--if a==player then
@@ -372,7 +377,7 @@ function controlactor(a)
 			for actor in all(actors) do 
 				local diff=actor.x-198*hillspacing
 				actor.x=hillspacing*3+diff
-				if actor.x<=0 or actor.x>=hillspacing*199 then
+				if actor.x<=0 or actor.x>=hillspacing*200 then
 					del(actors,actor)
 				end
 			end
@@ -406,12 +411,16 @@ function controlactor(a)
 		a.tail={a.x-a.vec[1],a.y-a.vec[2]}
 		if a.bt==4 then
 			makecloud(a.x+rnd(10)-5,a.y+rnd(10)-5,3)
+--		elseif a.bt==5 then
+--			a.vel=4
 		end
 		for enemy in all(actors) do
 			if enemy.t==enums.enemy then
 			if collision(a,enemy) then
 				damageactor(enemy,bullettype[a.bt].dam)
-				del(actors,a)
+				if a.bt!=5 then
+					del(actors,a)
+				end
 				makedebris(a.x,a.y)
 			end
 			end
@@ -444,7 +453,7 @@ function controlactor(a)
 			a.vel=3
 			if collision(a,player) then
 				player.hit=20
-				damageactor(player,0)
+				damageactor(player,1)
 				damageactor(a,1)
 			end
 			if a.y>=getgroundheight(a.x) then
@@ -465,6 +474,15 @@ function controlactor(a)
 		end
 	elseif a.t==enums.explosion then
 		if timer-a.delta>=2 then
+					for b=1,#actors do
+			local t=actors[b]
+			if t.t==enums.enemy then
+				if distance(a.x,a.y,t.x,t.y)<5 then
+					damageactor(t,1)
+				end
+			end
+		end
+
 			del(actors,a)
 		end
 	elseif a.t==enums.cloud then
@@ -483,7 +501,7 @@ function controlactor(a)
 				makedebris(a.x,a.y)
 			end
 			while a.bt==player.bt do
-				a.bt=flr(rnd(4))+1
+				a.bt=flr(rnd(#bullettype))+1
 			end
 			player.bt=a.bt
 			player.gun.heat=0
@@ -507,8 +525,9 @@ function controlactor(a)
 			a.delta=timer
 		end
 		if a.t!=enums.debris and a.t!=enums.crate then
-			if a.et!=2 then
-			a.d=getgrounddir(a)
+			--make bounciness a variable!
+			if a.et!=2 and a.bt!=5 then
+				a.d=getgrounddir(a)
 			end
 		end
 		if a.t==enums.bullet then
@@ -543,10 +562,13 @@ function controlactor(a)
  or a.x>cam[1]+512
  or a.y>128
  or a.y<-256
- or a.x>=199*hillspacing
+ or a.x>=200*hillspacing
  or a.x<=1*hillspacing then
  	if a.t==enums.enemy then
  		counters.enemies-=1
+ 		if a.et==enums.missile then
+ 			counters.missiles-=1
+ 		end
  	end
  	if a.t!=enums.tank then
  		del(actors,a)
@@ -629,7 +651,7 @@ function damageactor(a,d)
 		sfx(a.deathsnd)
 		makeexplosion(a.x,a.y)
 		if rnd(1)<a.drop then
-			makecrate(a.x,a.y,12,flr(rnd(4))+1)
+			makecrate(a.x,a.y,12,flr(rnd(#bullettype))+1)
 		end
 		del(actors,a)
 		counters.enemies-=1
@@ -637,13 +659,19 @@ function damageactor(a,d)
 end
 
 function spawnentities()
-	if counters.enemies<3 then
-		if rnd(1)<0.5 then
-		--spawn man
-			makeenemy(player.x+160,-50,0.15,3,6,2,1)		
-		elseif rnd(1)<0.3 then
-		--spawn ufo
-			makeenemy(player.x-38,-100+rnd(40),0,1,6,1,3)
+	if counters.enemies<5 then
+		if spawntimer<10 then
+			spawntimer+=1
+		else
+			if rnd(1)<0.3 then
+				--spawn man
+--				makeenemy(player.x+160,-50,0.15,3,6,2,1)
+				makeenemy(cam[1]+130,-rnd(128),0.15,3,6,2,1)		
+			elseif rnd(1)<0.3 then
+				--spawn ufo
+				makeenemy(player.x-38,-100+rnd(40),0,1,6,1,3)
+			end
+			spawntimer=0
 		end
 	end
 end
@@ -701,7 +729,7 @@ function _draw()
 		print("hp:"..player.hp,cam[1]+hud.hp.x,cam[2]+hud.hp.y,8)
 		if debug then
 			for a=1,#debug_l do
-				print(debug_l[a],cam[1]+0,cam[2]+(a-1)*6,8)
+				print(debug_l[a],cam[1]+0,cam[2]+(a-1)*6,11)
 			end
 		end
 		pal()
@@ -724,6 +752,7 @@ end
 function changestate(s)
 	state=s
 	timer=0
+	spawntimer=0
 	cam={0,0}
 	if state==3 then
 		pause=0
@@ -751,9 +780,6 @@ function debug_u()
 	debug_l[11]="gun vx:"..player.gun.vec[1]
 	debug_l[12]="gun vy:"..player.gun.vec[2]	
 	debug_l[13]="ratio:"..getgroundheight(player.x)
-	if player.d!=nil then
---	debug_l[14]="tank d:"..actors[1].d
-	end
 	debug_l[14]="tank vx:"..player.vec[1]
 	debug_l[15]="tank vy:"..player.vec[2]
 	debug_l[16]="enemy cnt:"..counters.enemies
@@ -761,6 +787,8 @@ function debug_u()
 	debug_l[18]="camx:"..cam[1]
 	debug_l[19]="camy:"..cam[2]
 	debug_l[20]="heat:"..player.gun.heat
+--	debug_l[21]="dist:"..distance(player.x,player.y,160,-5)
+	debug_l[21]="spawnt:"..spawntimer
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -952,7 +980,7 @@ __sfx__
 000500002844028040284402804028440280402844028040284402804028440280402844000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000002437024370243702437021370213702137021370003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300
 001400001e5401e5401e5401e5401e5401d5401d5401d5401d5401d5401c5401c5401c5401c5401c5401b5401b5401b5401b5401b540195401a540195401a540195401a540195401a54019540195401954019540
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00030000040700507006070080700b070110701b07025070230000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
