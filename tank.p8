@@ -276,10 +276,12 @@ function makeexplosion(x,y)
 end
 
 function makecloud(x,y,r)
+	if x>cam[1] and x<cam[1]+128 then
 	local e=makeactor(6,x,y,0,0)
 	e.r=r
 	e.grav=false
 	e.delta=timer
+	end
 end
 
 function makecrate(x,y,w,bt)
