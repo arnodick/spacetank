@@ -154,7 +154,7 @@ end
 
 function getgroundheight(x)
 	local gx=flr(x/hillspacing)
-	if gx!=0 then
+	if gx>0 then
 		if ground[gx][1]<x and ground[gx+1][1]>x then
 			local w=x-ground[gx][1]
 			return ground[gx][2]-w*ground[gx].ratio
@@ -164,6 +164,7 @@ function getgroundheight(x)
 	else
 		return 0
 	end
+	return
 end
 
 function getgrounddir(a)
@@ -354,16 +355,28 @@ function collision(a,enemy)
 end
 
 function controlactor(a)
-	if a.x<=hillspacing*2 then
- 	a.x=197*hillspacing
-	elseif a.x>198*hillspacing then
-		if a==player then
-			generatelandscape(20-rnd(15),100-rnd(95),3+rnd(3),3+rnd(3),hillspacing,false)
-		end
-		a.x=hillspacing*3
-	end
+--	if a.x<=hillspacing*2 then
+-- 	a.x=197*hillspacing
+--	elseif a.x>198*hillspacing then
+--		if a==player then
+--			generatelandscape(20-rnd(15),100-rnd(95),3+rnd(3),3+rnd(3),hillspacing,false)
+--		end
+--		a.x=hillspacing*3
+--	end
 
 	if a.t==enums.tank then
+		if a.x>198*hillspacing then
+			--if a==player then
+			generatelandscape(20-rnd(15),100-rnd(95),3+rnd(3),3+rnd(3),hillspacing,false)
+			--end
+			for actor in all(actors) do 
+				local diff=actor.x-198*hillspacing
+				actor.x=hillspacing*3+diff
+				if actor.x<=0 or actor.x>=hillspacing*199 then
+					del(actors,actor)
+				end
+			end
+		end
 		if btn(5) then
 			if btn(0) then 
 				a.vel-=a.accel
@@ -431,7 +444,7 @@ function controlactor(a)
 			a.vel=3
 			if collision(a,player) then
 				player.hit=20
-				damageactor(player,3)
+				damageactor(player,0)
 				damageactor(a,1)
 			end
 			if a.y>=getgroundheight(a.x) then
@@ -529,7 +542,9 @@ function controlactor(a)
  if a.x<cam[1]-128
  or a.x>cam[1]+512
  or a.y>128
- or a.y<-256 then
+ or a.y<-256
+ or a.x>=199*hillspacing
+ or a.x<=1*hillspacing then
  	if a.t==enums.enemy then
  		counters.enemies-=1
  	end
