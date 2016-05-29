@@ -69,6 +69,18 @@ function _init()
 	bullettype[5].dam=3
 	bullettype[5].proj=3
 	bullettype[5].heat=60
+		--light lazer
+	bullettype[6]={}
+	bullettype[6].vel=0
+	bullettype[6].rof=1
+	bullettype[6].dest=true--{destroy/bounce,momentum}
+	bullettype[6].num=1
+	bullettype[6].acc=0
+	bullettype[6].snd=25
+	bullettype[6].rec=0
+	bullettype[6].dam=0.1
+	bullettype[6].proj=4
+	bullettype[6].heat=5
 	
 	enums={}
 	enums.tank=1
@@ -106,7 +118,7 @@ function _init()
 	hillspacing=50
 	generatelandscape(10,60,3,3,hillspacing,true)
 	actors={}
-	player=maketank(150,-50,0,0,1)
+	player=maketank(150,-50,0,0,6)
 	--player=maketank(190*hillspacing,-50,0,0,1)
 end
 
@@ -236,6 +248,9 @@ function makebullet(x,y,d,vel,bt)
 	bullet.bt=bt
 	if bullet.bt==5 then
 		bullet.decel=0
+	elseif bullet.bt==6 then
+		bullet.grav=false
+		bullet.decel=0
 	end
 end
 
@@ -328,6 +343,8 @@ function drawactor(t)
 		elseif bullettype[t.bt].proj==3 then
 			circ(t.tail[1],t.tail[2],6+(cos(timer/20))*2,7)
 			circ(t.tail[1],t.tail[2],3+(sin(timer/20))*2,7)
+		elseif bullettype[t.bt].proj==4 then
+			line(player.gun.x,player.gun.y-player.yoff,t.x,t.y,7)
 		end
 	elseif t.t==enums.enemy then
 		if t.et==enums.ufo then
@@ -413,16 +430,26 @@ function controlactor(a)
 			makecloud(a.x+rnd(10)-5,a.y+rnd(10)-5,3)
 --		elseif a.bt==5 then
 --			a.vel=4
+		elseif a.bt==6 then
+			if timer-a.delta>=2 then
+			del(actors,a)
+			end
 		end
 		for enemy in all(actors) do
 			if enemy.t==enums.enemy then
-			if collision(a,enemy) then
-				damageactor(enemy,bullettype[a.bt].dam)
-				if a.bt!=5 then
-					del(actors,a)
+				if collision(a,enemy) then
+					damageactor(enemy,bullettype[a.bt].dam)
+					if a.bt!=5 then
+						del(actors,a)
+					end
+					makedebris(a.x,a.y)
 				end
-				makedebris(a.x,a.y)
-			end
+				if bullettype[a.bt].proj==4 then
+					local ld=atan2(enemy.x-player.gun.x,enemy.y-player.gun.y-player.yoff)
+					if ld>player.gun.angle-0.02 and ld<player.gun.angle+0.02 then
+						damageactor(enemy,bullettype[a.bt].dam)
+					end
+				end
 			end
 		end
 	elseif a.t==enums.enemy then
@@ -474,15 +501,14 @@ function controlactor(a)
 		end
 	elseif a.t==enums.explosion then
 		if timer-a.delta>=2 then
-					for b=1,#actors do
-			local t=actors[b]
-			if t.t==enums.enemy then
-				if distance(a.x,a.y,t.x,t.y)<5 then
-					damageactor(t,1)
+			for b=1,#actors do
+				local t=actors[b]
+				if t.t==enums.enemy then
+					if distance(a.x,a.y,t.x,t.y)<5 then
+						damageactor(t,1)
+					end
 				end
 			end
-		end
-
 			del(actors,a)
 		end
 	elseif a.t==enums.cloud then
@@ -586,12 +612,17 @@ function controlactor(a)
 				sfx(bullettype[a.bt].snd)
 				a.gun.len=2
 				a.gun.heat+=bullettype[a.bt].heat
-				local bvel=sqrt( (a.gun.vec[1]*bullettype[a.bt].vel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bullettype[a.bt].vel+a.vec[2]*a.vel)^2 )
+				if bullettype[a.bt].proj==4 then
+				--laser
+					makebullet(a.gun.x+a.gun.vec[1]*100,a.gun.y+a.gun.vec[2]*100,a.gun.angle,0,a.bt)
+				else
+					local bvel=sqrt( (a.gun.vec[1]*bullettype[a.bt].vel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bullettype[a.bt].vel+a.vec[2]*a.vel)^2 )
 					for b=1,bullettype[a.bt].num do
 						makebullet(a.gun.x,a.gun.y+7,a.gun.angle+rnd(bullettype[a.bt].acc)-bullettype[a.bt].acc/2,bvel+rnd(1)-1,a.bt)
 					end
-				if a.gun.angle<0.25 then
-					a.gun.angle+=bullettype[a.bt].rec
+					if a.gun.angle<0.25 then
+						a.gun.angle+=bullettype[a.bt].rec
+					end
 				end
 				a.gun.delta=bullettype[a.bt].rof
 			end
@@ -981,7 +1012,7 @@ __sfx__
 001000002437024370243702437021370213702137021370003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300
 001400001e5401e5401e5401e5401e5401d5401d5401d5401d5401d5401c5401c5401c5401c5401c5401b5401b5401b5401b5401b540195401a540195401a540195401a540195401a54019540195401954019540
 00030000040700507006070080700b070110701b07025070230000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000400000d2400d2300d2400d2300d2400d2300d24000200002000020000200002000020000200002000020000200002000020000200002000020000200002000020000200002000020000200002000020000200
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
