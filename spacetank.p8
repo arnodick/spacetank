@@ -391,7 +391,7 @@ end
 function controlactor(a)
 	if a.t==enums.tank then
 		if a.x>198*hillspacing then
-			generatelandscape(20-rnd(5),60-rnd(30),3+rnd(6),3+rnd(12),hillspacing,false)
+			generatelandscape(20-rnd(15),60-rnd(50),3+rnd(6),3+rnd(12),hillspacing,false)
 			for actor in all(actors) do 
 				local diff=actor.x-198*hillspacing
 				actor.x=hillspacing*3+diff
@@ -801,7 +801,7 @@ function _draw()
 		print("9000",53,68,8)
 		print("start: button 1",34,90,8)
 		print("instructions: button 2",20,100,8)
-		print("hi score: "..dget(0),41,120,8)
+		print("hi score: "..dget(0),38,120,8)
 		foreach(actors,drawactor)
 	elseif state==enums.options then
 		pal(7,flr(rnd(15))+1)
