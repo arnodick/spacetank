@@ -85,6 +85,19 @@ function _init()
 	bullettype[6].dam=0.2
 	bullettype[6].proj=4
 	bullettype[6].heat=5
+	--bouncy ballz tm
+--	bullettype[7]={}
+--	bullettype[7].vel=9
+--	bullettype[7].rof=16
+--	bullettype[7].dest=false--{destroy/bounce,momentum}
+--	bullettype[7].num=10
+--	bullettype[7].acc=0.08
+--	bullettype[7].snd=24
+--	bullettype[7].rec=0
+--	bullettype[7].dam=3
+--	bullettype[7].proj=3
+--	bullettype[7].heat=60
+
 	
 	enums={}
 	enums.tank=1
@@ -121,7 +134,7 @@ function _init()
 	--groundwidth=3--how many low areas before go back to hill
 	--hillwidth=3--how many hills before go back to ground
 	hillspacing=50
-	generatelandscape(10,60,3,3,hillspacing,true)
+	generatelandscape(10,60-rnd(40),3,3,hillspacing,true)
 end
 
 function generatelandscape(gh,hh,gw,hw,hs,first)
@@ -249,7 +262,7 @@ function makebullet(x,y,d,vel,bt)
 	local bullet=makeactor(2,x,y,d,vel)
 	bullet.tail={0,0}
 	bullet.bt=bt
-	if bullet.bt==5 then
+	if bullet.bt==5 or bullet.bt==7 then
 		bullet.decel=0
 	elseif bullet.bt==6 then
 		bullet.grav=false
@@ -400,7 +413,7 @@ function controlactor(a)
 	if a.t==enums.tank then
 		if a.x>198*hillspacing then
 			--if a==player then
-			generatelandscape(20-rnd(15),100-rnd(35),3+rnd(6),3+rnd(12),hillspacing,false)
+			generatelandscape(20-rnd(15),20-rnd(10)+20,3+rnd(6),3+rnd(12),hillspacing,false)
 			--generatelandscape(20-rnd(15),100-rnd(95),3+rnd(3),3+rnd(3),hillspacing,false)
 			--generatelandscape(20-rnd(15),150-rnd(145),3+rnd(5),3+rnd(5),hillspacing,false)
 			--end
@@ -413,15 +426,19 @@ function controlactor(a)
 			end
 			mothership.x=0
 		end
-		if btn(5) then
+		if btn(5) or btn(3) then
+			a.vel-=a.decel*4
+		else
+			a.vel+=a.accel
+		end
 --			if btn(0) then 
 --				a.vel-=a.accel
 --			elseif btn(1) then 
-				a.vel+=a.accel
+--				a.vel+=a.accel
 --			end
-		else
-			a.vel-=a.decel
-		end
+--		else
+--			a.vel-=a.decel
+--		end
 		if btn(1) then
 			a.gun.angle=clamp(a.gun.angle-0.016,0,0.5,true)
 		elseif btn(0) then 
@@ -567,12 +584,14 @@ function controlactor(a)
 		end
 		if a.t!=enums.debris and a.t!=enums.crate then
 			--make bounciness a variable!
-			if a.et!=2 and a.bt!=5 then
+			if a==player or (a.et!=2 and a.bt!=5) then
 				a.d=getgrounddir(a)
 			end
 		end
 		if a.t==enums.bullet then
-			sfx(4)
+			if a.x>cam[1] and a.x<cam[1]+128 then
+				sfx(4)
+			end
 			--make an array of functions for this?
 			--each function is indexed from array with the .bt value
 			if bullettype[a.bt].dest then
@@ -716,7 +735,7 @@ function damageactor(a,d)
 		end
 		sfx(a.deathsnd)
 		makeexplosion(a.x,a.y)
-		if rnd(1)<a.drop then
+		if rnd(1)<a.drop+1/(level*2) then
 			makecrate(a.x,a.y,12,flr(rnd(#bullettype))+1)
 		end
 		del(actors,a)
@@ -953,7 +972,7 @@ function changestate(s)
 		sfx(37)
 		player=maketank(150,-200,0,0,1)
 		mothership={}
-		mothership.x=10
+		mothership.x=120
 		mothership.y=getgroundheight(mothership.x)
 		mothership.c=7
 		mothership.spr=67
