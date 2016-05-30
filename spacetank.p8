@@ -129,10 +129,6 @@ function _init()
 	hud.hp.x=100
 	hud.hp.y=4
 
-	--groundheight=10
-	--hillheight=60
-	--groundwidth=3--how many low areas before go back to hill
-	--hillwidth=3--how many hills before go back to ground
 	hillspacing=50
 	generatelandscape(10,30,3,3,hillspacing,true)
 end
@@ -141,41 +137,31 @@ function generatelandscape(gh,hh,gw,hw,hs,first)
 	level+=1
 	local los,his=0,0
 	local ys={}
-	--ys[1],ys[2],ys[3]=0,0,0
 	if not first then
 		ys[1],ys[2],ys[3],ys[4],ys[5]=0,ground[197][2],ground[198][2],ground[199][2],ground[200][2]
 	end
 	ground={}
 	ground[1]={0,0}
-	--if not first then
-	--	ground[1]={0,ys[1]}
-	--end
 	ground[1].ratio=1
 	ground[1].d=0
 	for a=2,200 do
 		local h=0
-		--h=groundheight
 		h=gh
 		if his>0 then
-			--if his>hillwidth then 
 			if his>hw then 
 				his=0
 				los+=1
 			else
 				his+=1
-				--h+=hillheight
 				h+=hh
 			end
-		--elseif los>groundwidth then
 		elseif los>gw then
 				los=0
-				--h+=hillheight
 				h+=hh
 				his+=1
 		else
 				los+=1
 		end
-		--ground[a]={a*hillspacing,-flr(rnd(h))}
 		ground[a]={a*hs,-flr(rnd(h))}
 		if not first then
 			if a>1 and a<6 then
@@ -190,9 +176,8 @@ function generatelandscape(gh,hh,gw,hw,hs,first)
 end
 
 function distance(x1,y1,x2,y2)
+	--need to div by 10 bc numbers were getting way to big and overflowing, giving negatives output
 	local a=(x2-x1)/10  local b=(y2-y1)/10
-	--return sqrt((x2-x1)^2+(y2-y1)^2)
---	return sqrt(a*a+b*b)
 	return (a*a+b*b)
 end
 
@@ -309,13 +294,6 @@ function makeexplosion(x,y)
 	for j=1,10 do
 		makecloud(e.x+rnd(20)-10,e.y+rnd(20)-10,10)
 	end
---	for k,v in pairs(actors) do
---		if distance(e.x,e.y,v.x,v.y)<5 then
---			if v.t==enums.enemy then
---				damageactor(v,3)
---			end
---		end
---	end
 end
 
 function makecloud(x,y,r)
@@ -356,13 +334,9 @@ function drawactor(t)
 		elseif bullettype[t.bt].proj==2 then
 			circfill(t.x,t.y,4,7)
 			circfill(t.tail[1],t.tail[2],3,7)
---			circ(t.x,t.y,5,8)
 		elseif bullettype[t.bt].proj==3 then
-			--circ(t.tail[1],t.tail[2],6+(cos(timer/20))*2,7)
-			--circ(t.tail[1],t.tail[2],3+(sin(timer/20))*2,7)
 			circ(t.x,t.y,6+(cos(timer/20))*2,7)
 			circ(t.x,t.y,3+(sin(timer/20))*2,7)
---			circ(t.x,t.y,5,8)
 		elseif bullettype[t.bt].proj==4 then
 			line(player.gun.x,player.gun.y-player.yoff,t.x,t.y,7)
 		end
@@ -396,6 +370,7 @@ function drawactor(t)
 end
 
 function drawbox(x,y,w,a)
+--	todo: make this a loop
 	line(x+cos(a     )*w/2,y+sin(a     )*w/2,x+cos(a+0.25)*w/2,y+sin(a+0.25)*w/2,7)
 	line(x+cos(a+0.25)*w/2,y+sin(a+0.25)*w/2,x+cos(a+0.5 )*w/2,y+sin(a+0.5 )*w/2,7)
 	line(x+cos(a+0.5 )*w/2,y+sin(a+0.5 )*w/2,x+cos(a+0.75)*w/2,y+sin(a+0.75)*w/2,7)
@@ -416,11 +391,7 @@ end
 function controlactor(a)
 	if a.t==enums.tank then
 		if a.x>198*hillspacing then
-			--if a==player then
 			generatelandscape(20-rnd(5),40-rnd(20),3+rnd(6),3+rnd(12),hillspacing,false)
-			--generatelandscape(20-rnd(15),100-rnd(95),3+rnd(3),3+rnd(3),hillspacing,false)
-			--generatelandscape(20-rnd(15),150-rnd(145),3+rnd(5),3+rnd(5),hillspacing,false)
-			--end
 			for actor in all(actors) do 
 				local diff=actor.x-198*hillspacing
 				actor.x=hillspacing*3+diff
@@ -435,14 +406,6 @@ function controlactor(a)
 		else
 			a.vel+=a.accel
 		end
---			if btn(0) then 
---				a.vel-=a.accel
---			elseif btn(1) then 
---				a.vel+=a.accel
---			end
---		else
---			a.vel-=a.decel
---		end
 		if btn(1) then
 			a.gun.angle=clamp(a.gun.angle-0.016,0,0.5,true)
 		elseif btn(0) then 
@@ -459,13 +422,10 @@ function controlactor(a)
 		if a.hit>0 then
 			a.hit-=1
 		end
---		sfx(8+abs(flr(a.vel)),0)
 	elseif a.t==enums.bullet then
 		a.tail={a.x-a.vec[1],a.y-a.vec[2]}
 		if a.bt==4 then
 			makecloud(a.x+rnd(10)-5,a.y+rnd(10)-5,3)
---		elseif a.bt==5 then
---			a.vel=4
 		elseif a.bt==6 then
 			if timer-a.delta>=2 then
 				del(actors,a)
@@ -595,7 +555,7 @@ function controlactor(a)
 			a.delta=timer
 		end
 		if a.t!=enums.debris and a.t!=enums.crate then
-			--make bounciness a variable!
+			--todo: make bounciness a variable!
 			if a==player or (a.et!=2 and a.bt!=5) then
 				a.d=getgrounddir(a)
 			end
@@ -628,7 +588,6 @@ function controlactor(a)
 	elseif a.vel>0 then
 		a.vel-=a.decel
 	end
-
  
  if a.x<cam[1]-128
  or a.x>cam[1]+512
@@ -763,7 +722,6 @@ function spawnentities()
 			if rnd(1)<0.3 then
 				--spawn man
 				if player.hp!=0 then
-					--makeenemy(cam[1]+130,-rnd(128),0.15,3,6,2,1)
 					makeenemy(cam[1]+130,getgroundheight(cam[1]+130)-rnd(10),0.15,3,6,2,1)
 				else
 					makeenemy(cam[1]-12,-rnd(128),0.15,3,6,2,1)
@@ -784,7 +742,6 @@ function _update()
 			changestate(enums.title)
 		end
 	elseif state==enums.title then
-		--title menu logic here!
 		if btnp(4) then
 			makeexplosion(60,60)
 			titletimer=20
@@ -830,7 +787,6 @@ function _draw()
 	cls()
 	camera(cam[1],cam[2])
 	if state==enums.intro then
-		--drawintro(0,120,255,{16,16,10,30},{1,6,10,10})
 		drawintro(0,120,255,{16,40,50,60},{1,2,2,2})
 	elseif state==enums.title then
 		spr(128,0,0,4,4)
@@ -873,15 +829,11 @@ function _draw()
 		spr(24,300,getgroundheight(300)-23,7,3)
 		print(level,312,getgroundheight(300)-5,7)
 		if mothership.x>cam[1] then
-			--rectfill(mothership.x-10,mothership.y-108,mothership.x-1,mothership.y,mothership.c)
-			--spr(mothership.spr,mothership.x-12,mothership.y-120,2,2)
-			--rectfill(mothership.x-10,cam[2]+12,mothership.x-1,mothership.y,mothership.c)
 			rectfill(mothership.x-10,cam[2]+12,mothership.x-1,getgroundheight(mothership.x),mothership.c)
 			circfill(mothership.x-5.5,getgroundheight(mothership.x),4.95,mothership.c)
 			spr(mothership.spr,mothership.x-12,cam[2],2,2)
 		end
 		foreach(actors,drawactor)
-	--	drawactor(player)--so that tank is drawn over other stuff like bullets
 		if player.gun.heat>0 then
 			rectfill(cam[1]+hud.bar.x,cam[2]+hud.bar.y,cam[1]+hud.bar.x+player.gun.heat,cam[2]+hud.bar.y+hud.bar.h,hud.bar.c)
 			rect(cam[1]+hud.bar.x,cam[2]+hud.bar.y,cam[1]+hud.bar.x+hud.bar.w,cam[2]+hud.bar.y+hud.bar.h,8)
@@ -896,7 +848,6 @@ function _draw()
 		if player.hp<=0 then
 			print("space tank died",cam[1]+34,cam[2]+50,8)
 			print("in the year 9000",cam[1]+32,cam[2]+60,8)
-			--print("at mine "..level,cam[1]+44,cam[2]+70,8)
 			print("with "..counters.gets.." weapon crates",cam[1]+24,cam[2]+70,8)
 			if deathtimer>60 then
 				if timer%40<=20 then
@@ -914,7 +865,6 @@ function drawintro(x,y,st,td,col)
 		if timer>st*2^a then ind=a+1 end
 	end
 	for a=1,#introtext do
-		--print(introtext[a],x,y+a*7-timer/4,8)
 		print(introtext[a],x,y+a*7-timer/4,7+((timer+(a-1)*10)/td[ind+1])%col[ind+1])
 	end
 end
@@ -1016,7 +966,6 @@ function debug_u()
 	debug_l[18]="camx:"..cam[1]
 	debug_l[19]="camy:"..cam[2]
 	debug_l[20]="heat:"..player.gun.heat
---	debug_l[21]="dist:"..distance(player.x,player.y,160,-5)
 	debug_l[21]="spawnt:"..spawntimer
 end
 __gfx__
