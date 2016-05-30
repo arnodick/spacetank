@@ -85,6 +85,19 @@ function _init()
 	bullettype[6].dam=0.2
 	bullettype[6].proj=4
 	bullettype[6].heat=5
+	--bouncy ballz tm
+--	bullettype[7]={}
+--	bullettype[7].vel=9
+--	bullettype[7].rof=16
+--	bullettype[7].dest=false--{destroy/bounce,momentum}
+--	bullettype[7].num=10
+--	bullettype[7].acc=0.08
+--	bullettype[7].snd=24
+--	bullettype[7].rec=0
+--	bullettype[7].dam=3
+--	bullettype[7].proj=3
+--	bullettype[7].heat=60
+
 	
 	enums={}
 	enums.tank=1
@@ -121,7 +134,7 @@ function _init()
 	--groundwidth=3--how many low areas before go back to hill
 	--hillwidth=3--how many hills before go back to ground
 	hillspacing=50
-	generatelandscape(10,60,3,3,hillspacing,true)
+	generatelandscape(10,30,3,3,hillspacing,true)
 end
 
 function generatelandscape(gh,hh,gw,hw,hs,first)
@@ -249,7 +262,7 @@ function makebullet(x,y,d,vel,bt)
 	local bullet=makeactor(2,x,y,d,vel)
 	bullet.tail={0,0}
 	bullet.bt=bt
-	if bullet.bt==5 then
+	if bullet.bt==5 or bullet.bt==7 then
 		bullet.decel=0
 	elseif bullet.bt==6 then
 		bullet.grav=false
@@ -263,10 +276,10 @@ function makeenemy(x,y,d,vel,bt,et,hp)
 	enemy.hp=hp
 	if et==enums.ufo then
 		enemy.grav=false
-		makehitbox(enemy,1,2-4,12,9)
+		makehitbox(enemy,1-8,2-4-4,12,9)
 		enemy.drop=0.5
 	elseif et==enums.man then
-		makehitbox(enemy,0,0,8,8)
+		makehitbox(enemy,0-4,0-4,8,8)
 		enemy.deathsnd=18
 		enemy.drop=0.1
 	elseif et==enums.missile then
@@ -343,18 +356,22 @@ function drawactor(t)
 		elseif bullettype[t.bt].proj==2 then
 			circfill(t.x,t.y,4,7)
 			circfill(t.tail[1],t.tail[2],3,7)
+--			circ(t.x,t.y,5,8)
 		elseif bullettype[t.bt].proj==3 then
-			circ(t.tail[1],t.tail[2],6+(cos(timer/20))*2,7)
-			circ(t.tail[1],t.tail[2],3+(sin(timer/20))*2,7)
+			--circ(t.tail[1],t.tail[2],6+(cos(timer/20))*2,7)
+			--circ(t.tail[1],t.tail[2],3+(sin(timer/20))*2,7)
+			circ(t.x,t.y,6+(cos(timer/20))*2,7)
+			circ(t.x,t.y,3+(sin(timer/20))*2,7)
+--			circ(t.x,t.y,5,8)
 		elseif bullettype[t.bt].proj==4 then
 			line(player.gun.x,player.gun.y-player.yoff,t.x,t.y,7)
 		end
 	elseif t.t==enums.enemy then
 		if t.et==enums.ufo then
-			spr(19+flr(cos(timer/20))*2,t.x,t.y,2,1)
+			spr(19+flr(cos(timer/20))*2,t.x-8,t.y-4,2,1)
 		elseif t.et==enums.man then
 			if player.hp!=0 then
-				spr(33+(timer/20)%2,t.x,t.y,1,1,t.vel or false)
+				spr(33+(timer/20)%2,t.x-4,t.y-4,1,1,t.vel or false)
 			else
 				spr(35+(timer/20)%2,t.x,t.y,1,1,t.vel or false)
 			end
@@ -387,8 +404,8 @@ end
 
 function collision(a,enemy)
 	if  a.x>enemy.x+enemy.hitbox.x
-	and a.x<enemy.x+enemy.hitbox.x+enemy.hitbox.w
-	and a.y>enemy.y+enemy.hitbox.y
+	and a.x<enemy.x+enemy.hitbox.x+enemy.hitbox.w--+a.vec[1]*a.vel
+	and a.y>enemy.y+enemy.hitbox.y---a.vec[2]*a.vel
 	and a.y<enemy.y+enemy.hitbox.y+enemy.hitbox.h then
 		return true
 	else
@@ -400,7 +417,7 @@ function controlactor(a)
 	if a.t==enums.tank then
 		if a.x>198*hillspacing then
 			--if a==player then
-			generatelandscape(20-rnd(15),100-rnd(35),3+rnd(6),3+rnd(12),hillspacing,false)
+			generatelandscape(20-rnd(5),40-rnd(20),3+rnd(6),3+rnd(12),hillspacing,false)
 			--generatelandscape(20-rnd(15),100-rnd(95),3+rnd(3),3+rnd(3),hillspacing,false)
 			--generatelandscape(20-rnd(15),150-rnd(145),3+rnd(5),3+rnd(5),hillspacing,false)
 			--end
@@ -413,15 +430,19 @@ function controlactor(a)
 			end
 			mothership.x=0
 		end
-		if btn(5) then
+		if btn(5) or btn(3) then
+			a.vel-=a.decel*4
+		else
+			a.vel+=a.accel
+		end
 --			if btn(0) then 
 --				a.vel-=a.accel
 --			elseif btn(1) then 
-				a.vel+=a.accel
+--				a.vel+=a.accel
 --			end
-		else
-			a.vel-=a.decel
-		end
+--		else
+--			a.vel-=a.decel
+--		end
 		if btn(1) then
 			a.gun.angle=clamp(a.gun.angle-0.016,0,0.5,true)
 		elseif btn(0) then 
@@ -458,6 +479,14 @@ function controlactor(a)
 						del(actors,a)
 					end
 					makedebris(a.x,a.y)
+				elseif a.bt==4 or a.bt==5 then
+					if distance(a.x,a.y,enemy.x,enemy.y)<2 then
+						damageactor(enemy,bullettype[a.bt].dam)
+						if a.bt!=5 then
+							del(actors,a)
+						end
+					makedebris(a.x,a.y)
+					end
 				end
 				if bullettype[a.bt].proj==4 then
 					local ld=atan2(enemy.x-player.gun.x,enemy.y-player.gun.y-player.yoff)
@@ -520,7 +549,7 @@ function controlactor(a)
 				local t=actors[b]
 				if t.t==enums.enemy then
 					if distance(a.x,a.y,t.x,t.y)<5 then
-						damageactor(t,1)
+						damageactor(t,2)
 					end
 				end
 			end
@@ -567,12 +596,14 @@ function controlactor(a)
 		end
 		if a.t!=enums.debris and a.t!=enums.crate then
 			--make bounciness a variable!
-			if a.et!=2 and a.bt!=5 then
+			if a==player or (a.et!=2 and a.bt!=5) then
 				a.d=getgrounddir(a)
 			end
 		end
 		if a.t==enums.bullet then
-			sfx(4)
+			if a.x>cam[1] and a.x<cam[1]+128 then
+				sfx(4)
+			end
 			--make an array of functions for this?
 			--each function is indexed from array with the .bt value
 			if bullettype[a.bt].dest then
@@ -716,7 +747,7 @@ function damageactor(a,d)
 		end
 		sfx(a.deathsnd)
 		makeexplosion(a.x,a.y)
-		if rnd(1)<a.drop then
+		if rnd(1)<a.drop+1/(level*2) then
 			makecrate(a.x,a.y,12,flr(rnd(#bullettype))+1)
 		end
 		del(actors,a)
@@ -732,7 +763,8 @@ function spawnentities()
 			if rnd(1)<0.3 then
 				--spawn man
 				if player.hp!=0 then
-					makeenemy(cam[1]+130,-rnd(128),0.15,3,6,2,1)
+					--makeenemy(cam[1]+130,-rnd(128),0.15,3,6,2,1)
+					makeenemy(cam[1]+130,getgroundheight(cam[1]+130)-rnd(10),0.15,3,6,2,1)
 				else
 					makeenemy(cam[1]-12,-rnd(128),0.15,3,6,2,1)
 				end
@@ -834,25 +866,27 @@ function _draw()
 		if timer<30 then
 			sspr(8,32,16,16,135,-230,32,32)
 		end
-		if mothership.x>cam[1] then
-			--rectfill(mothership.x-10,mothership.y-108,mothership.x-1,mothership.y,mothership.c)
-			--spr(mothership.spr,mothership.x-12,mothership.y-120,2,2)
-			rectfill(mothership.x-10,cam[2]+12,mothership.x-1,mothership.y,mothership.c)
-			spr(mothership.spr,mothership.x-12,cam[2],2,2)
-		end
 		for a=1,#ground-1 do
 			line(ground[a][1],ground[a][2],ground[a+1][1],ground[a+1][2],8)
 			line(ground[a][1]+8,ground[a][2]+8,ground[a+1][1]+8,ground[a+1][2]+8,7)
 		end
 		spr(24,300,getgroundheight(300)-23,7,3)
 		print(level,312,getgroundheight(300)-5,7)
+		if mothership.x>cam[1] then
+			--rectfill(mothership.x-10,mothership.y-108,mothership.x-1,mothership.y,mothership.c)
+			--spr(mothership.spr,mothership.x-12,mothership.y-120,2,2)
+			--rectfill(mothership.x-10,cam[2]+12,mothership.x-1,mothership.y,mothership.c)
+			rectfill(mothership.x-10,cam[2]+12,mothership.x-1,getgroundheight(mothership.x),mothership.c)
+			circfill(mothership.x-5.5,getgroundheight(mothership.x),4.95,mothership.c)
+			spr(mothership.spr,mothership.x-12,cam[2],2,2)
+		end
 		foreach(actors,drawactor)
 	--	drawactor(player)--so that tank is drawn over other stuff like bullets
 		if player.gun.heat>0 then
 			rectfill(cam[1]+hud.bar.x,cam[2]+hud.bar.y,cam[1]+hud.bar.x+player.gun.heat,cam[2]+hud.bar.y+hud.bar.h,hud.bar.c)
 			rect(cam[1]+hud.bar.x,cam[2]+hud.bar.y,cam[1]+hud.bar.x+hud.bar.w,cam[2]+hud.bar.y+hud.bar.h,8)
 		end
-		print("score:"..counters.gets,cam[1]+hud.score.x,cam[2]+hud.score.y,8)
+		print("crates:"..counters.gets,cam[1]+hud.score.x,cam[2]+hud.score.y,8)
 		print("hp:"..player.hp,cam[1]+hud.hp.x,cam[2]+hud.hp.y,8)
 		if debug then
 			for a=1,#debug_l do
@@ -862,7 +896,8 @@ function _draw()
 		if player.hp<=0 then
 			print("space tank died",cam[1]+34,cam[2]+50,8)
 			print("in the year 9000",cam[1]+32,cam[2]+60,8)
-			print("at mine "..level,cam[1]+44,cam[2]+70,8)
+			--print("at mine "..level,cam[1]+44,cam[2]+70,8)
+			print("with "..counters.gets.." weapon crates",cam[1]+24,cam[2]+70,8)
 			if deathtimer>60 then
 				if timer%40<=20 then
 					print("restart: button 1",cam[1]+30,cam[2]+80,8)
@@ -953,7 +988,7 @@ function changestate(s)
 		sfx(37)
 		player=maketank(150,-200,0,0,1)
 		mothership={}
-		mothership.x=10
+		mothership.x=120
 		mothership.y=getgroundheight(mothership.x)
 		mothership.c=7
 		mothership.spr=67

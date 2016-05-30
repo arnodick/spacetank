@@ -276,10 +276,10 @@ function makeenemy(x,y,d,vel,bt,et,hp)
 	enemy.hp=hp
 	if et==enums.ufo then
 		enemy.grav=false
-		makehitbox(enemy,1,2-4,12,9)
+		makehitbox(enemy,1-8,2-4-4,12,9)
 		enemy.drop=0.5
 	elseif et==enums.man then
-		makehitbox(enemy,0,0,8,8)
+		makehitbox(enemy,0-4,0-4,8,8)
 		enemy.deathsnd=18
 		enemy.drop=0.1
 	elseif et==enums.missile then
@@ -356,18 +356,22 @@ function drawactor(t)
 		elseif bullettype[t.bt].proj==2 then
 			circfill(t.x,t.y,4,7)
 			circfill(t.tail[1],t.tail[2],3,7)
+--			circ(t.x,t.y,5,8)
 		elseif bullettype[t.bt].proj==3 then
-			circ(t.tail[1],t.tail[2],6+(cos(timer/20))*2,7)
-			circ(t.tail[1],t.tail[2],3+(sin(timer/20))*2,7)
+			--circ(t.tail[1],t.tail[2],6+(cos(timer/20))*2,7)
+			--circ(t.tail[1],t.tail[2],3+(sin(timer/20))*2,7)
+			circ(t.x,t.y,6+(cos(timer/20))*2,7)
+			circ(t.x,t.y,3+(sin(timer/20))*2,7)
+--			circ(t.x,t.y,5,8)
 		elseif bullettype[t.bt].proj==4 then
 			line(player.gun.x,player.gun.y-player.yoff,t.x,t.y,7)
 		end
 	elseif t.t==enums.enemy then
 		if t.et==enums.ufo then
-			spr(19+flr(cos(timer/20))*2,t.x,t.y,2,1)
+			spr(19+flr(cos(timer/20))*2,t.x-8,t.y-4,2,1)
 		elseif t.et==enums.man then
 			if player.hp!=0 then
-				spr(33+(timer/20)%2,t.x,t.y,1,1,t.vel or false)
+				spr(33+(timer/20)%2,t.x-4,t.y-4,1,1,t.vel or false)
 			else
 				spr(35+(timer/20)%2,t.x,t.y,1,1,t.vel or false)
 			end
@@ -476,7 +480,7 @@ function controlactor(a)
 					end
 					makedebris(a.x,a.y)
 				elseif a.bt==4 or a.bt==5 then
-					if distance(a.x,a.y,enemy.x,enemy.y)<1.5 then
+					if distance(a.x,a.y,enemy.x,enemy.y)<2 then
 						damageactor(enemy,bullettype[a.bt].dam)
 						if a.bt!=5 then
 							del(actors,a)
@@ -545,7 +549,7 @@ function controlactor(a)
 				local t=actors[b]
 				if t.t==enums.enemy then
 					if distance(a.x,a.y,t.x,t.y)<5 then
-						damageactor(t,1)
+						damageactor(t,2)
 					end
 				end
 			end
@@ -759,7 +763,8 @@ function spawnentities()
 			if rnd(1)<0.3 then
 				--spawn man
 				if player.hp!=0 then
-					makeenemy(cam[1]+130,-rnd(128),0.15,3,6,2,1)
+					--makeenemy(cam[1]+130,-rnd(128),0.15,3,6,2,1)
+					makeenemy(cam[1]+130,getgroundheight(cam[1]+130)-rnd(10),0.15,3,6,2,1)
 				else
 					makeenemy(cam[1]-12,-rnd(128),0.15,3,6,2,1)
 				end
@@ -861,18 +866,20 @@ function _draw()
 		if timer<30 then
 			sspr(8,32,16,16,135,-230,32,32)
 		end
-		if mothership.x>cam[1] then
-			--rectfill(mothership.x-10,mothership.y-108,mothership.x-1,mothership.y,mothership.c)
-			--spr(mothership.spr,mothership.x-12,mothership.y-120,2,2)
-			rectfill(mothership.x-10,cam[2]+12,mothership.x-1,mothership.y,mothership.c)
-			spr(mothership.spr,mothership.x-12,cam[2],2,2)
-		end
 		for a=1,#ground-1 do
 			line(ground[a][1],ground[a][2],ground[a+1][1],ground[a+1][2],8)
 			line(ground[a][1]+8,ground[a][2]+8,ground[a+1][1]+8,ground[a+1][2]+8,7)
 		end
 		spr(24,300,getgroundheight(300)-23,7,3)
 		print(level,312,getgroundheight(300)-5,7)
+		if mothership.x>cam[1] then
+			--rectfill(mothership.x-10,mothership.y-108,mothership.x-1,mothership.y,mothership.c)
+			--spr(mothership.spr,mothership.x-12,mothership.y-120,2,2)
+			--rectfill(mothership.x-10,cam[2]+12,mothership.x-1,mothership.y,mothership.c)
+			rectfill(mothership.x-10,cam[2]+12,mothership.x-1,getgroundheight(mothership.x),mothership.c)
+			circfill(mothership.x-5.5,getgroundheight(mothership.x),4.95,mothership.c)
+			spr(mothership.spr,mothership.x-12,cam[2],2,2)
+		end
 		foreach(actors,drawactor)
 	--	drawactor(player)--so that tank is drawn over other stuff like bullets
 		if player.gun.heat>0 then
