@@ -400,8 +400,9 @@ function controlactor(a)
 	if a.t==enums.tank then
 		if a.x>198*hillspacing then
 			--if a==player then
+			generatelandscape(20-rnd(15),100-rnd(35),3+rnd(6),3+rnd(12),hillspacing,false)
 			--generatelandscape(20-rnd(15),100-rnd(95),3+rnd(3),3+rnd(3),hillspacing,false)
-			generatelandscape(20-rnd(15),150-rnd(145),3+rnd(5),3+rnd(5),hillspacing,false)
+			--generatelandscape(20-rnd(15),150-rnd(145),3+rnd(5),3+rnd(5),hillspacing,false)
 			--end
 			for actor in all(actors) do 
 				local diff=actor.x-198*hillspacing
@@ -413,19 +414,20 @@ function controlactor(a)
 			mothership.x=0
 		end
 		if btn(5) then
-			if btn(0) then 
-				a.vel-=a.accel
-			elseif btn(1) then 
+--			if btn(0) then 
+--				a.vel-=a.accel
+--			elseif btn(1) then 
 				a.vel+=a.accel
-			end
+--			end
 		else
-			if btn(0) then
-				a.gun.angle=clamp(a.gun.angle+0.016,0,0.5,true)
-			end
-			if btn(1) then 
-				a.gun.angle=clamp(a.gun.angle-0.016,0,0.5,true)
-			end
+			a.vel-=a.decel
 		end
+		if btn(1) then
+			a.gun.angle=clamp(a.gun.angle-0.016,0,0.5,true)
+		elseif btn(0) then 
+			a.gun.angle=clamp(a.gun.angle+0.016,0,0.5,true)
+		end
+		
 		a.vel=clamp(a.vel,-a.maxvel,a.maxvel,true)
 		
 		a.gun.vec[1]=cos(a.gun.angle)
@@ -723,7 +725,7 @@ function damageactor(a,d)
 end
 
 function spawnentities()
-	if counters.enemies<level+2 then
+	if counters.enemies<level then
 		if spawntimer<10 then
 			spawntimer+=1
 		else
