@@ -134,7 +134,7 @@ function _init()
 	--groundwidth=3--how many low areas before go back to hill
 	--hillwidth=3--how many hills before go back to ground
 	hillspacing=50
-	generatelandscape(10,60-rnd(40),3,3,hillspacing,true)
+	generatelandscape(10,30,3,3,hillspacing,true)
 end
 
 function generatelandscape(gh,hh,gw,hw,hs,first)
@@ -400,8 +400,8 @@ end
 
 function collision(a,enemy)
 	if  a.x>enemy.x+enemy.hitbox.x
-	and a.x<enemy.x+enemy.hitbox.x+enemy.hitbox.w
-	and a.y>enemy.y+enemy.hitbox.y
+	and a.x<enemy.x+enemy.hitbox.x+enemy.hitbox.w--+a.vec[1]*a.vel
+	and a.y>enemy.y+enemy.hitbox.y---a.vec[2]*a.vel
 	and a.y<enemy.y+enemy.hitbox.y+enemy.hitbox.h then
 		return true
 	else
@@ -413,7 +413,7 @@ function controlactor(a)
 	if a.t==enums.tank then
 		if a.x>198*hillspacing then
 			--if a==player then
-			generatelandscape(20-rnd(15),20-rnd(10)+20,3+rnd(6),3+rnd(12),hillspacing,false)
+			generatelandscape(20-rnd(5),40-rnd(20),3+rnd(6),3+rnd(12),hillspacing,false)
 			--generatelandscape(20-rnd(15),100-rnd(95),3+rnd(3),3+rnd(3),hillspacing,false)
 			--generatelandscape(20-rnd(15),150-rnd(145),3+rnd(5),3+rnd(5),hillspacing,false)
 			--end
@@ -475,6 +475,14 @@ function controlactor(a)
 						del(actors,a)
 					end
 					makedebris(a.x,a.y)
+				elseif a.bt==4 or a.bt==5 then
+					if distance(a.x,a.y,enemy.x,enemy.y)<1.5 then
+						damageactor(enemy,bullettype[a.bt].dam)
+						if a.bt!=5 then
+							del(actors,a)
+						end
+					makedebris(a.x,a.y)
+					end
 				end
 				if bullettype[a.bt].proj==4 then
 					local ld=atan2(enemy.x-player.gun.x,enemy.y-player.gun.y-player.yoff)
@@ -871,7 +879,7 @@ function _draw()
 			rectfill(cam[1]+hud.bar.x,cam[2]+hud.bar.y,cam[1]+hud.bar.x+player.gun.heat,cam[2]+hud.bar.y+hud.bar.h,hud.bar.c)
 			rect(cam[1]+hud.bar.x,cam[2]+hud.bar.y,cam[1]+hud.bar.x+hud.bar.w,cam[2]+hud.bar.y+hud.bar.h,8)
 		end
-		print("score:"..counters.gets,cam[1]+hud.score.x,cam[2]+hud.score.y,8)
+		print("crates:"..counters.gets,cam[1]+hud.score.x,cam[2]+hud.score.y,8)
 		print("hp:"..player.hp,cam[1]+hud.hp.x,cam[2]+hud.hp.y,8)
 		if debug then
 			for a=1,#debug_l do
@@ -881,7 +889,8 @@ function _draw()
 		if player.hp<=0 then
 			print("space tank died",cam[1]+34,cam[2]+50,8)
 			print("in the year 9000",cam[1]+32,cam[2]+60,8)
-			print("at mine "..level,cam[1]+44,cam[2]+70,8)
+			--print("at mine "..level,cam[1]+44,cam[2]+70,8)
+			print("with "..counters.gets.." weapon crates",cam[1]+24,cam[2]+70,8)
 			if deathtimer>60 then
 				if timer%40<=20 then
 					print("restart: button 1",cam[1]+30,cam[2]+80,8)
