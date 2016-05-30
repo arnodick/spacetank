@@ -401,7 +401,7 @@ function controlactor(a)
 		if a.x>198*hillspacing then
 			--if a==player then
 			--generatelandscape(20-rnd(15),100-rnd(95),3+rnd(3),3+rnd(3),hillspacing,false)
-			generatelandscape(20-rnd(15),150-rnd(145),3+rnd(3),3+rnd(3),hillspacing,false)
+			generatelandscape(20-rnd(15),150-rnd(145),3+rnd(5),3+rnd(5),hillspacing,false)
 			--end
 			for actor in all(actors) do 
 				local diff=actor.x-198*hillspacing
