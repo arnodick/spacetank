@@ -130,7 +130,7 @@ function _init()
 	hud.hp.y=4
 
 	hillspacing=50
-	generatelandscape(10,30,3,3,hillspacing,true)
+	generatelandscape(10,40,3,3,hillspacing,true)
 end
 
 function generatelandscape(gh,hh,gw,hw,hs,first)
@@ -391,7 +391,7 @@ end
 function controlactor(a)
 	if a.t==enums.tank then
 		if a.x>198*hillspacing then
-			generatelandscape(20-rnd(5),40-rnd(20),3+rnd(6),3+rnd(12),hillspacing,false)
+			generatelandscape(20-rnd(5),60-rnd(30),3+rnd(6),3+rnd(12),hillspacing,false)
 			for actor in all(actors) do 
 				local diff=actor.x-198*hillspacing
 				actor.x=hillspacing*3+diff
