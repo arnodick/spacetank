@@ -618,7 +618,7 @@ function controlactor(a)
 				a.gun.len=2
 				a.gun.heat+=bullettype[a.bt].heat
 				if bullettype[a.bt].proj==4 then
-				--laser
+				--lazer
 					makebullet(a.gun.x+a.gun.vec[1]*100,a.gun.y+a.gun.vec[2]*100,a.gun.angle,0,a.bt)
 				else
 					local bvel=sqrt( (a.gun.vec[1]*bullettype[a.bt].vel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bullettype[a.bt].vel+a.vec[2]*a.vel)^2 )
