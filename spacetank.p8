@@ -248,6 +248,7 @@ function makebullet(x,y,d,vel,bt)
 	bullet.tail={0,0}
 	bullet.bt=bt
 	if bullet.bt==5 or bullet.bt==7 then
+		bullet.bouncy=true
 		bullet.decel=0
 	elseif bullet.bt==6 then
 		bullet.grav=false
@@ -267,6 +268,7 @@ function makeenemy(x,y,d,vel,bt,et,hp)
 		makehitbox(enemy,0-4,0-4,8,8)
 		enemy.deathsnd=18
 		enemy.drop=0.1
+		enemy.bouncy=true
 	elseif et==enums.missile then
 		enemy.grav=false
 		makehitbox(enemy,0-4,0-4,5,8)
@@ -282,6 +284,7 @@ function makedebris(x,y)
 	debris.angle=rnd(1)
 	debris.w=6
 	debris.bounce=0
+	debris.bouncy=true
 	return debris
 end
 
@@ -313,6 +316,7 @@ function makecrate(x,y,w,bt)
 	c.vel=rnd(4)+4
 	c.d=rnd(0.15)
 	c.decel=0.03
+	c.bouncy=true
 	makehitbox(c,-w/2-4,-w/2-4,w+6,w+6)
 end
 
@@ -554,11 +558,8 @@ function controlactor(a)
 		if a.t!=enums.cloud and a.t!=enums.explosion then
 			a.delta=timer
 		end
-		if a.t!=enums.debris and a.t!=enums.crate then
-			--todo: make bounciness a variable!
-			if a==player or (a.et!=2 and a.bt!=5) then
-				a.d=getgrounddir(a)
-			end
+		if not a.bouncy then
+			a.d=getgrounddir(a)
 		end
 		if a.t==enums.bullet then
 			if a.x>cam[1] and a.x<cam[1]+128 then
