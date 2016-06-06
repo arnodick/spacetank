@@ -263,11 +263,11 @@ function makeenemy(x,y,d,vel,bt,et,hp)
 	if et==enums.ufo then
 		enemy.grav=false
 		makehitbox(enemy,1-8,2-4-4,12,9)
-		enemy.drop=0.5
+		enemy.drop=0.4
 	elseif et==enums.man then
 		makehitbox(enemy,0-4,0-4,8,8)
 		enemy.deathsnd=18
-		enemy.drop=0.1
+		enemy.drop=0
 		enemy.bouncy=true
 	elseif et==enums.missile then
 		enemy.grav=false
@@ -731,6 +731,10 @@ function spawnentities()
 			elseif rnd(1)<0.3 then
 				--spawn ufo
 				makeenemy(cam[1]-12,-100+rnd(40),0,5,6,1,3)
+			elseif rnd(1)<0.1 then
+				if level>4 then
+					--spawn truck
+				end
 			end
 			spawntimer=0
 		end
