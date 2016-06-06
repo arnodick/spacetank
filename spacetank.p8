@@ -374,11 +374,9 @@ function drawactor(t)
 end
 
 function drawbox(x,y,w,a)
---	todo: make this a loop
-	line(x+cos(a     )*w/2,y+sin(a     )*w/2,x+cos(a+0.25)*w/2,y+sin(a+0.25)*w/2,7)
-	line(x+cos(a+0.25)*w/2,y+sin(a+0.25)*w/2,x+cos(a+0.5 )*w/2,y+sin(a+0.5 )*w/2,7)
-	line(x+cos(a+0.5 )*w/2,y+sin(a+0.5 )*w/2,x+cos(a+0.75)*w/2,y+sin(a+0.75)*w/2,7)
-	line(x+cos(a+0.75)*w/2,y+sin(a+0.75)*w/2,x+cos(a     )*w/2,y+sin(a     )*w/2,7)
+	for i=0,3 do
+		line(x+cos(a+i*0.25)*w/2,y+sin(a+i*0.25)*w/2,x+cos(a+(i+1)*0.25)*w/2,y+sin(a+(i+1)*0.25)*w/2,7)
+	end
 end
 
 function collision(a,enemy)
@@ -555,8 +553,10 @@ function controlactor(a)
 		if a.t==enums.tank then
 			a.yoff+=sin(timer/(12))
 		end
-		if a.t!=enums.cloud and a.t!=enums.explosion then
-			a.delta=timer
+		if a.t!=enums.cloud then
+			if a.t!=enums.explosion then
+				a.delta=timer
+			end
 		end
 		if not a.bouncy then
 			a.d=getgrounddir(a)
@@ -661,7 +661,8 @@ function controlactor(a)
 			cam[2]=-118
 		end
 		if a.vel<1.5 then
-			mothership.x+=0.8
+--			mothership.x+=0.8
+			mothership.x+=1.5
 			mothership.c=7
 			mothership.spr=67
 		elseif a.vel<3.5 then
