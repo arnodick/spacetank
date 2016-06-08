@@ -190,10 +190,8 @@ function getgroundheight(x)
 		elseif ground[gx][1]==x then
 			return ground[gx][2]
 		end
-	else
-		return 0
 	end
-	return
+	return 0
 end
 
 function getgrounddir(a)
