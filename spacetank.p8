@@ -137,7 +137,11 @@ function generatelandscape(gh,hh,gw,hw,hs,first)
 	level+=1
 	local los,his=0,0
 	local ys={}
+	--todo just do this without the local
 	if not first then
+--		for i=1,5 do
+--			ys[a]=ground[195+i][2] or 0
+--		end
 		ys[1],ys[2],ys[3],ys[4],ys[5]=0,ground[197][2],ground[198][2],ground[199][2],ground[200][2]
 	end
 	ground={}
@@ -163,6 +167,7 @@ function generatelandscape(gh,hh,gw,hw,hs,first)
 				los+=1
 		end
 		ground[a]={a*hs,-flr(rnd(h))}
+		--todo gotta be a better way to do this!
 		if not first then
 			if a>1 and a<6 then
 				ground[a][2]=ys[a]
@@ -255,7 +260,7 @@ function makebullet(x,y,d,vel,bt)
 	end
 end
 
-function makeenemy(x,y,d,vel,bt,et,hp)
+function makeenemy(x,y,d,vel,bt,et,hp,sp)
 	local enemy=makeactor(3,x,y,d,vel)
 	enemy.et=et
 	enemy.hp=hp
@@ -269,6 +274,12 @@ function makeenemy(x,y,d,vel,bt,et,hp)
 		enemy.deathsnd=18
 		enemy.drop=0
 		enemy.bouncy=true
+		enemy.sp=sp
+--		if player.hp!=0 then
+--			enemy.sp=33
+--		else
+--			enemy.sp=35
+--		end
 	elseif et==enums.missile then
 		enemy.grav=false
 		makehitbox(enemy,0-4,0-4,5,8)
@@ -348,13 +359,12 @@ function drawactor(t)
 		if t.et==enums.ufo then
 			spr(19+flr(cos(timer/20))*2,t.x-8,t.y-4,2,1)
 		elseif t.et==enums.man then
-			if player.hp!=0 then
-				--spr(33+(timer/20)%2,t.x-4,t.y-4,1,1,t.vel or false)
-				spr(33+(timer/20)%2,t.x-4,t.y-4)
-			else
-				--spr(35+(timer/20)%2,t.x,t.y,1,1,t.vel or false)
-				spr(35+(timer/20)%2,t.x,t.y)
-			end
+			spr(t.sp+(timer/20)%2,t.x-4,t.y-4)
+--			if player.hp!=0 then
+--				spr(33+(timer/20)%2,t.x-4,t.y-4)
+--			else
+--				spr(35+(timer/20)%2,t.x,t.y)
+--			end
 		elseif t.et==enums.missile then
 			spr(50,t.x-4,t.y-4,1,1)
 		end
@@ -721,10 +731,10 @@ function spawnentities()
 		else
 			if rnd(1)<0.3 then
 				--spawn man
-				if player.hp!=0 then
-					makeenemy(cam[1]+130,getgroundheight(cam[1]+130)-rnd(10),0.15,3,6,2,1)
+				if player.hp>0 then
+					makeenemy(cam[1]+130,getgroundheight(cam[1]+130)-rnd(10),0.15,3,6,2,1,33)
 				else
-					makeenemy(cam[1]-12,-rnd(128),0.15,3,6,2,1)
+					makeenemy(cam[1]-12,-rnd(128),0.15,3,6,2,1,35)
 				end
 			elseif rnd(1)<0.3 then
 				--spawn ufo
