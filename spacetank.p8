@@ -232,6 +232,7 @@ function maketank(x,y,d,vel,bt)
 	tank.hit=0
 	tank.drop=1
 	tank.hitsfx=21
+	tank.deathsnd=23
 	makehitbox(tank,-4,-10,8,10)
 	tank.gun={}
 	tank.gun.angle=0.25
@@ -281,6 +282,7 @@ function makeenemy(x,y,d,vel,bt,et,hp,sp)
 --			enemy.sp=35
 --		end
 	elseif et==enums.missile then
+		sfx(20)
 		enemy.grav=false
 		makehitbox(enemy,0-4,0-4,5,8)
 		enemy.drop=0.2
@@ -360,11 +362,6 @@ function drawactor(t)
 			spr(19+flr(cos(timer/20))*2,t.x-8,t.y-4,2,1)
 		elseif t.et==enums.man then
 			spr(t.sp+(timer/20)%2,t.x-4,t.y-4)
---			if player.hp!=0 then
---				spr(33+(timer/20)%2,t.x-4,t.y-4)
---			else
---				spr(35+(timer/20)%2,t.x,t.y)
---			end
 		elseif t.et==enums.missile then
 			spr(50,t.x-4,t.y-4,1,1)
 		end
@@ -392,14 +389,16 @@ function drawbox(x,y,w,a)
 end
 
 function collision(a,enemy)
-	if  a.x>enemy.x+enemy.hitbox.x
-	and a.x<enemy.x+enemy.hitbox.x+enemy.hitbox.w--+a.vec[1]*a.vel
-	and a.y>enemy.y+enemy.hitbox.y---a.vec[2]*a.vel
-	and a.y<enemy.y+enemy.hitbox.y+enemy.hitbox.h then
+	if a.x>enemy.x+enemy.hitbox.x then
+	if a.x<enemy.x+enemy.hitbox.x+enemy.hitbox.w then--+a.vec[1]*a.vel
+	if a.y>enemy.y+enemy.hitbox.y then---a.vec[2]*a.vel
+	if a.y<enemy.y+enemy.hitbox.y+enemy.hitbox.h then
 		return true
-	else
-		return false
 	end
+	end
+	end
+	end
+	return false
 end
 
 function controlactor(a)
@@ -484,7 +483,6 @@ function controlactor(a)
 			end
 			if counters.missiles==0 then
 				if flr(a.x)==flr(player.x)+30 then
-					sfx(20)
 					makeenemy(a.x,a.y,0.9,4,1,3,1)
 				end
 			end
@@ -707,12 +705,7 @@ function damageactor(a,d)
 				makedebris(a.x,a.y)
 			end
 		elseif a.et==enums.missile then
-			counters.missiles-=1
-			if	counters.missiles<0 then
-				counters.missiles=0
-			end
-		elseif a.t==enums.tank then
-			sfx(23)
+			counters.missiles=clamp(counters.missiles-1,0,99,true)
 		end
 		sfx(a.deathsnd)
 		makeexplosion(a.x,a.y)
@@ -729,6 +722,7 @@ function spawnentities()
 		if spawntimer<10 then
 			spawntimer+=1
 		else
+			spawntimer=0
 			if rnd(1)<0.3 then
 				--spawn man
 				if player.hp>0 then
@@ -744,7 +738,6 @@ function spawnentities()
 					--spawn truck
 				end
 			end
-			spawntimer=0
 		end
 	end
 end
