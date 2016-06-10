@@ -129,7 +129,6 @@ function _init()
 	hud.hp.y=4
 
 	hillspacing=50
-	generatelandscape(10,40,3,3,hillspacing,true)
 end
 
 function generatelandscape(gh,hh,gw,hw,hs,first)
@@ -137,13 +136,9 @@ function generatelandscape(gh,hh,gw,hw,hs,first)
 	local los,his=0,0
 	local ys={}
 	--todo just do this without the local
-	if not first then
---		for i=1,5 do
---			ys[a]=ground[195+i][2] or 0
---		end
-		ys[1],ys[2],ys[3],ys[4],ys[5]=0,ground[197][2],ground[198][2],ground[199][2],ground[200][2]
-	end
-	ground={}
+--	if not first then
+--		ys[1],ys[2],ys[3],ys[4],ys[5]=0,ground[197][2],ground[198][2],ground[199][2],ground[200][2]
+--	end
 	ground[1]={0,0}
 	ground[1].ratio=1
 	ground[1].d=0
@@ -169,7 +164,8 @@ function generatelandscape(gh,hh,gw,hw,hs,first)
 		--todo gotta be a better way to do this!
 		if not first then
 			if a>1 and a<6 then
-				ground[a][2]=ys[a]
+				ground[a][2]=ground[195+a][2]
+--				ground[a][2]=ys[a]
 			end
 		end
 		local w=ground[a][1]-ground[a-1][1]
@@ -893,9 +889,9 @@ end
 function changestate(s)
 	state=s
 	timer=0
-	spawntimer=0
-	level=1
 	cam={0,0}
+	cam.shake=0
+	
 	actors={}
 	introtext={}
 	titletimer=0
@@ -934,16 +930,18 @@ function changestate(s)
 		add(introtext,"you are powerful and good")
 		add(introtext,"you are..........")
 	elseif state==3 then
+		sfx(37)
 		pause=0
-		cam={0,0}
-		cam.shake=0
+		spawntimer=0
+		level=0
+		ground={}
+		generatelandscape(10,40,3,3,hillspacing,true)
 		counters={}
 		counters.enemies=0
 		counters.gets=0
 		counters.missiles=0
 		gravity=0.2
 		deathtimer=0
-		sfx(37)
 		player=maketank(150,-200,0,0,1)
 		mothership={}
 		mothership.x=120
