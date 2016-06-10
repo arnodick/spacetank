@@ -434,9 +434,9 @@ function controlactor(a)
 		end
 	elseif a.t==enums.bullet then
 		a.tail={a.x-a.vec[1],a.y-a.vec[2]}
-		if a.bt==4 then
+		if a.bt==enums.cannon then
 			makecloud(a.x+rnd(10)-5,a.y+rnd(10)-5,3)
-		elseif a.bt==6 then
+		elseif a.bt==enums.lazer then
 			if timer-a.delta>=2 then
 				del(actors,a)
 			end
@@ -445,14 +445,14 @@ function controlactor(a)
 			if enemy.t==enums.enemy then
 				if collision(a,enemy) then
 					damageactor(enemy,bullettype[a.bt].dam)
-					if a.bt!=5 then
+					if a.bt!=enums.bouncyball then
 						del(actors,a)
 					end
 					makedebris(a.x,a.y)
-				elseif a.bt==4 or a.bt==5 then
+				elseif a.bt==enums.cannon or a.bt==enums.bouncyball then
 					if distance(a.x,a.y,enemy.x,enemy.y)<2 then
 						damageactor(enemy,bullettype[a.bt].dam)
-						if a.bt!=5 then
+						if a.bt!=enums.bouncyball then
 							del(actors,a)
 						end
 					makedebris(a.x,a.y)
@@ -478,7 +478,7 @@ function controlactor(a)
 			else
 				a.vel-=3
 			end
-			if counters.missiles==0 then
+			if counters.missiles<=0 then
 				if flr(a.x)==flr(player.x)+30 then
 					makeenemy(a.x,a.y,0.9,4,1,3,1)
 				end
