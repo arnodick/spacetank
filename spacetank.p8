@@ -97,7 +97,6 @@ function _init()
 --	bullettype[7].dam=3
 --	bullettype[7].proj=3
 --	bullettype[7].heat=60
-
 	
 	enums={}
 	enums.tank=1
@@ -785,7 +784,9 @@ function _update()
 				end
 			end
 		end
-		debug_u()
+		if debug then
+			debug_u()
+		end
 	end
 	timer+=1
 end
