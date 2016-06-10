@@ -99,6 +99,7 @@ function _init()
 --	bullettype[7].heat=60
 	
 	enums={}
+	--actor types
 	enums.tank=1
 	enums.bullet=2
 	enums.enemy=3
@@ -106,10 +107,21 @@ function _init()
 	enums.explosion=5
 	enums.cloud=6
 	enums.crate=7
+	--enemy types
 	enums.ufo=1
 	enums.man=2
 	enums.missile=3
 	enums.intro=0
+	--gun types
+	enums.machinegun=1
+	enums.shotgun=2
+	enums.minigun=3
+	enums.cannon=4
+	enums.bouncyball=5
+	enums.lazer=6
+	--projectile types
+	
+	--game states
 	enums.title=1
 	enums.options=2
 	enums.game=3
@@ -134,14 +146,7 @@ end
 function generatelandscape(gh,hh,gw,hw,hs,first)
 	level+=1
 	local los,his=0,0
-	local ys={}
-	--todo just do this without the local
---	if not first then
---		ys[1],ys[2],ys[3],ys[4],ys[5]=0,ground[197][2],ground[198][2],ground[199][2],ground[200][2]
---	end
 	ground[1]={0,0}
-	ground[1].ratio=1
-	ground[1].d=0
 	for a=2,200 do
 		local h=0
 		h=gh
@@ -161,11 +166,9 @@ function generatelandscape(gh,hh,gw,hw,hs,first)
 				los+=1
 		end
 		ground[a]={a*hs,-flr(rnd(h))}
-		--todo gotta be a better way to do this!
 		if not first then
 			if a>1 and a<6 then
 				ground[a][2]=ground[195+a][2]
---				ground[a][2]=ys[a]
 			end
 		end
 		local w=ground[a][1]-ground[a-1][1]
@@ -245,12 +248,12 @@ end
 
 function makebullet(x,y,d,vel,bt)
 	local bullet=makeactor(2,x,y,d,vel)
-	bullet.tail={0,0}
+	bullet.tail={x,y}
 	bullet.bt=bt
-	if bullet.bt==5 or bullet.bt==7 then
+	if bullet.bt==enums.bouncyball then
 		bullet.bouncy=true
 		bullet.decel=0
-	elseif bullet.bt==6 then
+	elseif bullet.bt==enums.lazer then
 		bullet.grav=false
 		bullet.decel=0
 	end
@@ -263,24 +266,19 @@ function makeenemy(x,y,d,vel,bt,et,hp,sp)
 	enemy.hitsfx=5
 	if et==enums.ufo then
 		enemy.grav=false
-		makehitbox(enemy,1-8,2-4-4,12,9)
 		enemy.drop=0.4
+		makehitbox(enemy,1-8,2-4-4,12,9)
 	elseif et==enums.man then
-		makehitbox(enemy,0-4,0-4,8,8)
 		enemy.deathsnd=18
 		enemy.drop=0
 		enemy.bouncy=true
 		enemy.sp=sp
---		if player.hp!=0 then
---			enemy.sp=33
---		else
---			enemy.sp=35
---		end
+		makehitbox(enemy,0-4,0-4,8,8)
 	elseif et==enums.missile then
 		sfx(20)
 		enemy.grav=false
-		makehitbox(enemy,0-4,0-4,5,8)
 		enemy.drop=0.2
+		makehitbox(enemy,0-4,0-4,5,8)
 		counters.missiles+=1
 	end
 	counters.enemies+=1
@@ -298,9 +296,9 @@ end
 
 function makeexplosion(x,y)
 	local e=makeactor(5,x,y,0,0)
+	sfx(2)
 	e.grav=false
 	e.delta=timer
-	sfx(2)
 	cam.shake=10
 	for j=1,10 do
 		makecloud(e.x+rnd(20)-10,e.y+rnd(20)-10,10)
@@ -341,14 +339,18 @@ function drawactor(t)
 		spr(1,t.x+t.xoff,t.y+t.yoff)
 		line(t.x+1,t.y-4+t.yoff+7,t.gun.x,t.gun.y+7,8)
 	elseif t.t==enums.bullet then
+		--normal bullets
 		if bullettype[t.bt].proj==1 then
 			line(t.x,t.y,t.tail[1],t.tail[2],7)
+		--cannon shell
 		elseif bullettype[t.bt].proj==2 then
 			circfill(t.x,t.y,4,7)
 			circfill(t.tail[1],t.tail[2],3,7)
+		--bouncy ball
 		elseif bullettype[t.bt].proj==3 then
 			circ(t.x,t.y,6+(cos(timer/20))*2,7)
 			circ(t.x,t.y,3+(sin(timer/20))*2,7)
+		--lazer
 		elseif bullettype[t.bt].proj==4 then
 			line(player.gun.x,player.gun.y-player.yoff,t.x,t.y,7)
 		end
@@ -624,7 +626,7 @@ function controlactor(a)
 				a.gun.len=2
 				a.gun.heat+=bullettype[a.bt].heat
 				if bullettype[a.bt].proj==4 then
-				--lazer
+					--lazer
 					makebullet(a.gun.x+a.gun.vec[1]*100,a.gun.y+a.gun.vec[2]*100,a.gun.angle,0,a.bt)
 				else
 					local bvel=sqrt( (a.gun.vec[1]*bullettype[a.bt].vel+a.vec[1]*a.vel)^2+(a.gun.vec[2]*bullettype[a.bt].vel+a.vec[2]*a.vel)^2 )
@@ -666,7 +668,6 @@ function controlactor(a)
 			cam[2]=-118
 		end
 		if a.vel<1.5 then
---			mothership.x+=0.8
 			mothership.x+=1.5
 			mothership.c=7
 			mothership.spr=67
@@ -692,8 +693,9 @@ end
 function damageactor(a,d)
 	sfx(a.hitsfx)
 	pal(8,7)
-	a.hp-=d or 3
+	a.hp-=d-- or 3
 	if a.hp<1 then
+		sfx(a.deathsnd)
 		pause=2
 		if a.et==enums.ufo then
 			for b=1,6 do
@@ -702,7 +704,6 @@ function damageactor(a,d)
 		elseif a.et==enums.missile then
 			counters.missiles=clamp(counters.missiles-1,0,99,true)
 		end
-		sfx(a.deathsnd)
 		makeexplosion(a.x,a.y)
 		if rnd(1)<a.drop+1/(level*2) then
 			makecrate(a.x,a.y,12,flr(rnd(#bullettype))+1)
@@ -722,6 +723,7 @@ function spawnentities()
 				--spawn man
 				if player.hp>0 then
 					makeenemy(cam[1]+130,getgroundheight(cam[1]+130)-rnd(10),0.15,3,6,2,1,33)
+				--spawn celebrator
 				else
 					makeenemy(cam[1]-12,-rnd(128),0.15,3,6,2,1,35)
 				end
@@ -844,11 +846,6 @@ function _draw()
 		end
 		print("crates:"..counters.gets,cam[1]+hud.score.x,cam[2]+hud.score.y,8)
 		print("hp:"..player.hp,cam[1]+hud.hp.x,cam[2]+hud.hp.y,8)
-		if debug then
-			for a=1,#debug_l do
-				print(debug_l[a],cam[1]+0,cam[2]+(a-1)*6,11)
-			end
-		end
 		if player.hp<=0 then
 			print("space tank died",cam[1]+34,cam[2]+50,8)
 			print("in the year 9000",cam[1]+32,cam[2]+60,8)
@@ -860,6 +857,11 @@ function _draw()
 			end
 		end
 		pal()
+		if debug then
+			for a=1,#debug_l do
+				print(debug_l[a],cam[1]+0,cam[2]+(a-1)*6,11)
+			end
+		end
 	end
 end
 
@@ -971,7 +973,7 @@ function debug_u()
 	debug_l[17]="missiles cnt:"..counters.missiles
 	debug_l[18]="camx:"..cam[1]
 	debug_l[19]="camy:"..cam[2]
-	debug_l[20]="heat:"..player.gun.heat
+	debug_l[20]="level:"..level
 	debug_l[21]="spawnt:"..spawntimer
 end
 __gfx__
