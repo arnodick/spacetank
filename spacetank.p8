@@ -460,6 +460,7 @@ function controlactor(a)
 				end
 				if bullettype[a.bt].proj==4 then
 					local ld=atan2(enemy.x-player.gun.x,enemy.y-player.gun.y-player.yoff)
+					--todo: fix this so that it doesnt jump from 0 to 1 when you try to check if ld is > gun angle
 					if ld>player.gun.angle-0.02 and ld<player.gun.angle+0.02 then
 						damageactor(enemy,bullettype[a.bt].dam)
 					end
