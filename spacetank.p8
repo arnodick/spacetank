@@ -286,7 +286,6 @@ end
 
 function makedebris(x,y)
 	local debris=makeactor(4,x,y,rnd(0.5),rnd(4)+3)
-	debris.delta=timer
 	debris.angle=rnd(1)
 	debris.w=6
 	debris.bounce=0
@@ -298,7 +297,6 @@ function makeexplosion(x,y)
 	local e=makeactor(5,x,y,0,0)
 	sfx(2)
 	e.grav=false
-	e.delta=timer
 	cam.shake=10
 	for j=1,10 do
 		makecloud(e.x+rnd(20)-10,e.y+rnd(20)-10,10)
@@ -307,10 +305,9 @@ end
 
 function makecloud(x,y,r)
 	if x>cam[1] and x<cam[1]+128 then
-	local e=makeactor(6,x,y,0,0)
-	e.r=r
-	e.grav=false
-	e.delta=timer
+		local e=makeactor(6,x,y,0,0)
+		e.r=r
+		e.grav=false
 	end
 end
 
@@ -614,6 +611,7 @@ function controlactor(a)
  		del(actors,a)
  	end
  end
+ 
  if a.t==enums.tank then
  	if a.gun.len<6 then
  		a.gun.len+=1
