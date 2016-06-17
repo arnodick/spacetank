@@ -657,6 +657,37 @@ function controlactor(a)
 		else
 			a.gun.heat=0
 		end
+		
+		--stuff below can prob be elsewhere
+		if cam.shake>0 then
+			cam.shake-=1
+		end
+		cam[1]=a.x+8*a.vel+rnd(cam.shake)*2-56
+		if a.y<-60 then
+			cam[2]=-118+a.y+60
+		else
+			cam[2]=-118
+		end
+		if a.vel<1.5 then
+			mothership.x+=1.5
+			mothership.c=7
+			mothership.spr=67
+		elseif a.vel<3.5 then
+			mothership.x+=a.vel+0.1
+			mothership.c=7
+			mothership.spr=67
+		end
+		if mothership.x>a.x then
+			if a.hp>0 then
+				damageactor(a,3)
+			end
+		elseif mothership.x<cam[1]-1 then
+			mothership.x=cam[1]-1
+			mothership.c=0
+			mothership.spr=110
+		else
+			sfx(38)
+		end
 	end
 end
 
@@ -734,41 +765,9 @@ function _update()
 	elseif state==enums.game then
 		if pause==0 then
 			foreach(actors,controlactor)
-			
-			if cam.shake>0 then
-				cam.shake-=1
-			end
-			cam[1]=player.x+8*player.vel+rnd(cam.shake)*2-56
-			if player.y<-60 then
-				cam[2]=-118+player.y+60
-			else
-				cam[2]=-118
-			end
-			if player.vel<1.5 then
-				mothership.x+=1.5
-				mothership.c=7
-				mothership.spr=67
-			elseif player.vel<3.5 then
-				mothership.x+=player.vel+0.1
-				mothership.c=7
-				mothership.spr=67
-			end
-			if mothership.x>player.x then
-				if player.hp>0 then
-					damageactor(player,3)
-				end
-			elseif mothership.x<cam[1]-1 then
-				mothership.x=cam[1]-1
-				mothership.c=0
-				mothership.spr=110
-			else
-				sfx(38)
-			end
-			
 			if player.hp<=0 then
 				mothership.x-=0.5
 			end
-			
 			spawnentities()
 		else
 			pause-=1
@@ -777,7 +776,6 @@ function _update()
 			if counters.gets>dget(0) then
 				dset(0,counters.gets)
 			end
-			mothership.x-=0.5
 			deathtimer+=1
 			if deathtimer>60 then
 				if btnp(4) then
