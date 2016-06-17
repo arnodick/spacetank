@@ -657,10 +657,12 @@ function controlactor(a)
 		else
 			a.gun.heat=0
 		end
+		
+		--stuff below can prob be elsewhere
 		if cam.shake>0 then
 			cam.shake-=1
 		end
-		cam[1]=a.x+8*player.vel+rnd(cam.shake)*2-56
+		cam[1]=a.x+8*a.vel+rnd(cam.shake)*2-56
 		if a.y<-60 then
 			cam[2]=-118+a.y+60
 		else
@@ -671,7 +673,7 @@ function controlactor(a)
 			mothership.c=7
 			mothership.spr=67
 		elseif a.vel<3.5 then
-			mothership.x+=player.vel+0.1
+			mothership.x+=a.vel+0.1
 			mothership.c=7
 			mothership.spr=67
 		end
