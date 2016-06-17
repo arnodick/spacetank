@@ -587,9 +587,9 @@ function controlactor(a)
 	a.vec[1]=cos(a.d)
 	a.vec[2]=sin(a.d)
 	a.x+=a.vec[1]*a.vel
- a.y+=a.vec[2]*a.vel
+	a.y+=a.vec[2]*a.vel
  
- if a.vel<0 then
+	if a.vel<0 then
 		a.vel+=a.decel
 	elseif a.vel>0 then
 		a.vel-=a.decel
@@ -613,10 +613,10 @@ function controlactor(a)
  end
  
  if a.t==enums.tank then
- 	if a.gun.len<6 then
- 		a.gun.len+=1
- 	end
-  a.gun.x=a.x+1+a.gun.vec[1]*a.gun.len
+		if a.gun.len<6 then
+			a.gun.len+=1
+		end
+		a.gun.x=a.x+1+a.gun.vec[1]*a.gun.len
 		a.gun.y=a.y-4+a.gun.vec[2]*a.gun.len+a.yoff
 		if a.gun.delta==0 then
 			hud.bar.c=8
@@ -688,7 +688,7 @@ function controlactor(a)
 		else
 			sfx(38)
 		end
- end
+	end
 end
 
 function damageactor(a,d)
